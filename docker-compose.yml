@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  workspace-mysql:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/mysql:8.0
+    container_name: workspace-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: personal_workspace
+      MYSQL_USER: workspace
+      MYSQL_PASSWORD: workspace123
+    ports:
+      - "3308:3306"
+    volumes:
+      - workspace-mysql-data:/var/lib/mysql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - workspace-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  workspace-redis:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/redis:7-alpine
+    container_name: workspace-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - workspace-redis-data:/data
+    networks:
+      - workspace-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  workspace-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: workspace-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=workspace-mysql
+      - DB_PORT=3306
+      - DB_USER=workspace
+      - DB_PASSWORD=workspace123
+      - DB_NAME=personal_workspace
+      - REDIS_HOST=workspace-redis
+      - REDIS_PORT=6379
+      - SECRET_KEY=your-secret-key-change-in-production
+    volumes:
+      - ./backend:/app
+    depends_on:
+      workspace-mysql:
+        condition: service_healthy
+      workspace-redis:
+        condition: service_healthy
+    networks:
+      - workspace-network
+
+  # Frontend
+  workspace-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: workspace-frontend
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    depends_on:
+      - workspace-backend
+    networks:
+      - workspace-network
+
+volumes:
+  workspace-mysql-data:
+  workspace-redis-data:
+
+networks:
+  workspace-network:
+    driver: bridge

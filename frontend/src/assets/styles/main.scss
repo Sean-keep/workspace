@@ -1,0 +1,96 @@
+// Variables
+$primary-color: #409eff;
+$success-color: #67c23a;
+$warning-color: #e6a23c;
+$danger-color: #f56c6c;
+$info-color: #909399;
+
+$text-primary: #303133;
+$text-regular: #606266;
+$text-secondary: #909399;
+$text-placeholder: #c0c4cc;
+
+$bg-color: #f5f7fa;
+$bg-white: #ffffff;
+$bg-dark: #1d1e1f;
+
+$border-color: #dcdfe6;
+$border-light: #e4e7ed;
+
+// Dark mode
+$dark-bg: #1d1e1f;
+$dark-bg-secondary: #2d2d2d;
+$dark-text: #e5eaf3;
+$dark-border: #4c4d4f;
+
+// Mixins
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin card-shadow {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+// Global styles
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: $bg-color;
+  color: $text-primary;
+}
+
+// Scrollbar
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #c0c4cc;
+  border-radius: 3px;
+
+  &:hover {
+    background-color: #909399;
+  }
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+// Transitions
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-enter-from {
+  transform: translateX(-20px);
+  opacity: 0;
+}
+
+.slide-leave-to {
+  transform: translateX(20px);
+  opacity: 0;
+}
