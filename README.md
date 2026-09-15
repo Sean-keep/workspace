@@ -75,15 +75,119 @@
 - Node.js 16+ (开发环境)
 - Python 3.8+ (开发环境)
 
-### 使用 Docker 部署
+### 方式一：Docker Compose 部署（推荐）
 
 ```bash
 # 克隆项目
-git clone https://github.com/your-username/personal-workspace.git
-cd personal-workspace
+git clone https://github.com/Sean-keep/workspace.git
+cd workspace
 
-# 启动服务
+# 启动所有服务
 docker-compose up -d
+
+# 查看运行状态
+docker-compose ps
+```
+
+### 方式二：手动部署
+
+#### 1. 准备数据库 (MySQL 8.0+)
+
+```bash
+# 登录 MySQL
+mysql -u root -p
+
+# 创建数据库和用户
+CREATE DATABASE personal_workspace CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'workspace'@'localhost' IDENTIFIED BY 'workspace123';
+GRANT ALL PRIVILEGES ON personal_workspace.* TO 'workspace'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+执行初始化脚本创建表结构和默认数据：
+
+```bash
+mysql -u workspace -p personal_workspace < scripts/init.sql
+```
+
+#### 2. 准备 Redis
+
+```bash
+# Ubuntu / Debian
+sudo apt install redis-server
+sudo systemctl start redis
+
+# CentOS / RHEL
+sudo yum install redis
+sudo systemctl start redis
+
+# macOS
+brew install redis
+brew services start redis
+```
+
+#### 3. 启动后端
+
+```bash
+cd backend
+
+# 创建虚拟环境
+python3 -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
+
+# 安装依赖
+pip install -r requirements.txt
+
+# 配置环境变量（可选，不配置则使用默认值）
+export DB_HOST=localhost
+export DB_PORT=3306
+export DB_USER=workspace
+export DB_PASSWORD=workspace123
+export DB_NAME=personal_workspace
+export REDIS_HOST=localhost
+export REDIS_PORT=6379
+export SECRET_KEY=your-secret-key-change-in-production
+
+# 启动后端服务
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+#### 4. 构建并部署前端
+
+```bash
+cd frontend
+
+# 安装依赖
+npm install
+
+# 开发模式
+npm run dev
+
+# 生产构建
+npm run build
+
+# 构建产物在 frontend/dist/ 目录，使用 Nginx 托管：
+```
+
+Nginx 配置示例：
+
+```nginx
+server {
+    listen 3001;
+    server_name localhost;
+
+    location / {
+        root /path/to/frontend/dist;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /api/ {
+        proxy_pass http://localhost:8000/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
 ```
 
 ### 访问服务
@@ -94,8 +198,8 @@ docker-compose up -d
 
 ### 默认账号
 
-- 用户名: admin
-- 密码: admin123
+- 用户名: `admin`
+- 密码: `admin123`
 
 ## 📁 项目结构
 
@@ -116,6 +220,8 @@ personal-workspace/
 │   │   ├── schemas/        # 数据验证
 │   │   └── utils/          # 工具函数
 │   └── Dockerfile
+├── scripts/                 # 初始化脚本
+│   └── init.sql            # 数据库建表及默认数据
 ├── docker-compose.yml       # Docker 编排配置
 └── README.md
 ```
