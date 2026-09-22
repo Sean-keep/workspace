@@ -1,0 +1,13 @@
+.tool-container {
+  padding: 16px;
+}
+
+.tool-header {
+  margin-bottom: 16px;
+}
+
+.tool-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}

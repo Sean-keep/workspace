@@ -15,7 +15,8 @@ export default defineConfig({
     }),
     Components({
       resolvers: [ElementPlusResolver()],
-      dts: 'src/components.d.ts'
+      // Not src/components.d.ts — that path shadows the @/components barrel.
+      dts: 'src/unplugin-components.d.ts'
     })
   ],
   resolve: {
@@ -35,6 +36,27 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: false
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          // Element Plus (+ icons + locale) is the biggest UI chunk.
+          if (id.includes('element-plus') || id.includes('@element-plus')) {
+            return 'element-plus'
+          }
+          // Vue runtime core + router + pinia.
+          if (
+            id.includes('node_modules/vue/') ||
+            id.includes('node_modules/vue-router/') ||
+            id.includes('node_modules/pinia/') ||
+            id.includes('node_modules/@vue/')
+          ) {
+            return 'vue/vendor'
+          }
+          return undefined
+        }
+      }
+    }
   }
 })

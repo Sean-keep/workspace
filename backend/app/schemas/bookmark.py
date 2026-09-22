@@ -1,11 +1,12 @@
-from pydantic import BaseModel
-from typing import Optional, List
 from datetime import datetime
+from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class BookmarkBase(BaseModel):
-    url: str
-    title: str
+    url: str = Field(min_length=1, max_length=500)
+    title: str = Field(min_length=1, max_length=200)
     description: Optional[str] = None
     category: str = "default"
     favicon: Optional[str] = None
@@ -17,8 +18,8 @@ class BookmarkCreate(BookmarkBase):
 
 
 class BookmarkUpdate(BaseModel):
-    url: Optional[str] = None
-    title: Optional[str] = None
+    url: Optional[str] = Field(default=None, min_length=1, max_length=500)
+    title: Optional[str] = Field(default=None, min_length=1, max_length=200)
     description: Optional[str] = None
     category: Optional[str] = None
     favicon: Optional[str] = None
@@ -26,11 +27,10 @@ class BookmarkUpdate(BaseModel):
 
 
 class BookmarkResponse(BookmarkBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     user_id: int
     visit_count: int
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True

@@ -1,10 +1,11 @@
-from pydantic import BaseModel
-from typing import Optional, List
 from datetime import datetime
+from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SnippetBase(BaseModel):
-    title: str
+    title: str = Field(min_length=1, max_length=200)
     description: Optional[str] = None
     language: str = "plaintext"
     code: str
@@ -17,7 +18,7 @@ class SnippetCreate(SnippetBase):
 
 
 class SnippetUpdate(BaseModel):
-    title: Optional[str] = None
+    title: Optional[str] = Field(default=None, min_length=1, max_length=200)
     description: Optional[str] = None
     language: Optional[str] = None
     code: Optional[str] = None
@@ -26,10 +27,9 @@ class SnippetUpdate(BaseModel):
 
 
 class SnippetResponse(SnippetBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     user_id: int
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True

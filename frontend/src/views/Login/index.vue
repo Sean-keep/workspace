@@ -156,7 +156,7 @@ const registerRules: FormRules = {
   confirmPassword: [
     { required: true, message: '请再次输入密码', trigger: 'blur' },
     {
-      validator: (rule: any, value: string, callback: Function) => {
+      validator: (_rule: unknown, value: string, callback: (e?: Error) => void) => {
         if (value !== registerForm.password) {
           callback(new Error('两次输入的密码不一致'))
         } else {
@@ -177,7 +177,7 @@ async function handleLogin() {
     await userStore.login(loginForm.username, loginForm.password)
     ElMessage.success('登录成功')
     router.push('/')
-  } catch (error) {
+  } catch {
     // Error handled by interceptor
   } finally {
     loading.value = false
@@ -193,7 +193,7 @@ async function handleRegister() {
     await userStore.register(registerForm.username, registerForm.email, registerForm.password)
     ElMessage.success('注册成功')
     router.push('/')
-  } catch (error) {
+  } catch {
     // Error handled by interceptor
   } finally {
     loading.value = false

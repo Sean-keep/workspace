@@ -1,0 +1,19 @@
+# Dev overlay — hot-reload backend source + publish DB/Redis for local debugging.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Do not use this overlay in production (it bind-mounts source and enables --reload).
+
+services:
+  workspace-backend:
+    volumes:
+      - ./backend:/app
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  workspace-mysql:
+    ports:
+      - "3308:3306"
+
+  workspace-redis:
+    ports:
+      - "6380:6379"

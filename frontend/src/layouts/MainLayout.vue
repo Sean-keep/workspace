@@ -105,20 +105,21 @@
               <el-scrollbar max-height="250px">
                 <div v-if="notifications.length > 0">
                   <div
-                    v-for="(item, index) in notifications"
-                    :key="index"
+                    v-for="item in notifications"
+                    :key="item.id"
                     class="notification-item"
+                    @click="openNotification(item)"
                   >
                     <el-icon :size="14" :color="item.color || '#409eff'">
                       <component :is="item.icon || 'InfoFilled'" />
                     </el-icon>
                     <div class="notification-content">
                       <div class="notification-title">{{ item.title }}</div>
-                      <div class="notification-time">{{ item.time }}</div>
+                      <div class="notification-time">{{ formatNotificationTime(item.time) }}</div>
                     </div>
                   </div>
                 </div>
-                <el-empty v-else description="暂无消息" :image-size="50" />
+                <el-empty v-else description="暂无通知" :image-size="50" />
               </el-scrollbar>
             </div>
           </el-popover>
@@ -126,7 +127,7 @@
           <!-- User Menu -->
           <el-dropdown @command="handleCommand">
             <div class="user-info">
-              <el-avatar :size="28" :src="userStore.user?.avatar">
+              <el-avatar :size="28" :src="userStore.user?.avatar || undefined">
                 {{ userStore.user?.username?.charAt(0).toUpperCase() }}
               </el-avatar>
               <span class="username">{{ userStore.user?.username }}</span>
@@ -155,14 +156,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { useSettingsStore } from '@/stores/settings'
 import { Bell } from '@element-plus/icons-vue'
+import api from '@/utils/api'
+import type { NotificationItem } from '@/utils/api-types'
+import dayjs from 'dayjs'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const settingsStore = useSettingsStore()
 
 const isCollapse = ref(false)
 const searchQuery = ref('')
@@ -170,70 +176,44 @@ const searchQuery = ref('')
 const activeMenu = computed(() => route.path)
 const currentTitle = computed(() => (route.meta.title as string) || '工作台')
 
-// 通知数据
-const notifications = ref([
-  {
-    title: '欢迎使用个人工作台',
-    time: '刚刚',
-    icon: 'SuccessFilled',
-    color: '#67c23a'
-  },
-  {
-    title: '您有 1 个待办任务',
-    time: '5分钟前',
-    icon: 'InfoFilled',
-    color: '#409eff'
-  },
-  {
-    title: '系统已更新到最新版本',
-    time: '1小时前',
-    icon: 'WarningFilled',
-    color: '#e6a23c'
+// 通知数据（来自 GET /api/dashboard/notifications）
+const notifications = ref<NotificationItem[]>([])
+
+async function fetchNotifications() {
+  try {
+    const res: any = await api.get('/dashboard/notifications')
+    const data = res.data
+    notifications.value = Array.isArray(data) ? (data as NotificationItem[]) : []
+  } catch {
+    notifications.value = []
   }
-])
+}
 
 function clearNotifications() {
+  // Session-only clear — server recomputes on next fetch.
   notifications.value = []
 }
 
-// Apply appearance settings on mount
-function applyAppearanceSettings() {
-  // Apply theme
-  const savedTheme = localStorage.getItem('theme')
-  if (savedTheme === 'dark') {
-    document.documentElement.classList.add('dark')
-  } else {
-    document.documentElement.classList.remove('dark')
-  }
-
-  // Apply primary color
-  const savedColor = localStorage.getItem('primaryColor')
-  if (savedColor) {
-    document.documentElement.style.setProperty('--el-color-primary', savedColor)
-    document.documentElement.style.setProperty('--primary-color', savedColor)
-  }
-
-  // Apply font size
-  const savedFontSize = localStorage.getItem('fontSize')
-  if (savedFontSize) {
-    document.documentElement.style.setProperty('--font-size', savedFontSize)
-    document.documentElement.style.fontSize = savedFontSize
+function openNotification(item: NotificationItem) {
+  if (item.link) {
+    router.push(item.link)
   }
 }
 
+function formatNotificationTime(time: string) {
+  return dayjs(time).format('MM-DD HH:mm')
+}
+
 onMounted(async () => {
-  applyAppearanceSettings()
+  settingsStore.applyAppearance()
+  await settingsStore.load()
   try {
     await userStore.fetchUser()
-  } catch (error) {
+  } catch {
     // User not logged in
   }
+  fetchNotifications()
 })
-
-// Watch for settings changes
-watch(() => localStorage.getItem('theme'), () => applyAppearanceSettings())
-watch(() => localStorage.getItem('primaryColor'), () => applyAppearanceSettings())
-watch(() => localStorage.getItem('fontSize'), () => applyAppearanceSettings())
 
 function handleCommand(command: string) {
   switch (command) {
@@ -365,6 +345,7 @@ function handleCommand(command: string) {
     gap: 10px;
     padding: 10px 0;
     border-bottom: 1px solid #f5f7fa;
+    cursor: pointer;
 
     &:last-child {
       border-bottom: none;
