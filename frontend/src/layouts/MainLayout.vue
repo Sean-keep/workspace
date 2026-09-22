@@ -237,7 +237,22 @@ function handleCommand(command: string) {
 }
 
 .sidebar {
-  background-color: #1d1e1f;
+  // One dark palette for the whole rail. Element Plus menu pulls its own
+  // --el-menu-* vars (default white), which is what left a white strip in the
+  // middle of the dark aside — pin them here so every layer matches.
+  --sidebar-bg: #1d1e1f;
+  --sidebar-fg: #cfd3dc;
+  --sidebar-hover: #2c2e30;
+  --sidebar-line: rgba(255, 255, 255, 0.08);
+
+  --el-menu-bg-color: var(--sidebar-bg);
+  --el-menu-text-color: var(--sidebar-fg);
+  --el-menu-active-color: var(--el-color-primary, #409eff);
+  --el-menu-hover-bg-color: var(--sidebar-hover);
+  --el-menu-item-hover-fill: var(--sidebar-hover);
+  --el-menu-border-color: transparent;
+
+  background-color: var(--sidebar-bg);
   transition: width 0.3s;
   display: flex;
   flex-direction: column;
@@ -252,7 +267,7 @@ function handleCommand(command: string) {
   gap: 8px;
   color: #fff;
   cursor: pointer;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--sidebar-line);
 }
 
 .logo-text {
@@ -264,17 +279,19 @@ function handleCommand(command: string) {
 .sidebar-menu {
   flex: 1;
   border-right: none;
-  background-color: transparent;
+  background-color: var(--sidebar-bg);
 
   :deep(.el-menu-item) {
-    color: #bfcbd9;
+    color: var(--sidebar-fg);
     height: 44px;
     line-height: 44px;
     font-size: 13px;
+    background-color: var(--sidebar-bg);
 
-    &:hover, &.is-active {
-      background-color: #263445;
-      color: #409eff;
+    &:hover,
+    &.is-active {
+      background-color: var(--sidebar-hover);
+      color: var(--el-color-primary, #409eff);
     }
   }
 }
@@ -284,12 +301,13 @@ function handleCommand(command: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #bfcbd9;
+  color: var(--sidebar-fg);
   cursor: pointer;
-  border-top: 1px solid #333;
+  border-top: 1px solid var(--sidebar-line);
+  background-color: var(--sidebar-bg);
 
   &:hover {
-    background-color: #263445;
+    background-color: var(--sidebar-hover);
   }
 }
 

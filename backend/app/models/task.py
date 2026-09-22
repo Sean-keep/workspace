@@ -5,7 +5,6 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
-    Enum,
     ForeignKey,
     Index,
     Integer,
@@ -16,6 +15,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from ..database import Base
+from .types import SafeEnum
 
 
 class TaskPriority(str, enum.Enum):
@@ -23,11 +23,6 @@ class TaskPriority(str, enum.Enum):
     MEDIUM = "medium"
     HIGH = "high"
     URGENT = "urgent"
-
-
-def enum_values(enum_cls):
-    """Store enum *values* ('low') in the DB, not member names ('LOW')."""
-    return [member.value for member in enum_cls]
 
 
 class RecurrenceType(str, enum.Enum):
@@ -56,18 +51,12 @@ class Task(Base):
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     status = Column(String(50), default="todo")  # Allow custom statuses
-    priority = Column(
-        Enum(TaskPriority, values_callable=enum_values),
-        default=TaskPriority.MEDIUM,
-    )
+    priority = Column(SafeEnum(TaskPriority), default=TaskPriority.MEDIUM)
     due_date = Column(DateTime(timezone=True), nullable=True)
     tags = Column(JSON, default=list)
     is_pinned = Column(Boolean, default=False)
     is_recurring = Column(Boolean, default=False)
-    recurrence_type = Column(
-        Enum(RecurrenceType, values_callable=enum_values),
-        default=RecurrenceType.NONE,
-    )
+    recurrence_type = Column(SafeEnum(RecurrenceType), default=RecurrenceType.NONE)
     recurrence_days = Column(JSON, nullable=True)  # For custom: [0,1,2,3,4] = Mon-Fri
     last_completed = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
