@@ -1,10 +1,11 @@
-from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, Optional
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class EventBase(BaseModel):
-    title: str
+    title: str = Field(min_length=1, max_length=200)
     description: Optional[str] = None
     start_time: datetime
     end_time: datetime
@@ -14,13 +15,19 @@ class EventBase(BaseModel):
     color: str = "#409EFF"
     recurrence: Optional[Dict[str, Any]] = None
 
+    @model_validator(mode="after")
+    def _check_range(self):
+        if self.end_time < self.start_time:
+            raise ValueError("end_time must be after start_time")
+        return self
+
 
 class EventCreate(EventBase):
     pass
 
 
 class EventUpdate(BaseModel):
-    title: Optional[str] = None
+    title: Optional[str] = Field(default=None, min_length=1, max_length=200)
     description: Optional[str] = None
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
@@ -32,10 +39,9 @@ class EventUpdate(BaseModel):
 
 
 class EventResponse(EventBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     user_id: int
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True

@@ -1,11 +1,13 @@
-from pydantic import BaseModel
-from typing import Optional, List
 from datetime import datetime
-from ..models.task import TaskPriority, RecurrenceType
+from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from ..models.task import RecurrenceType, TaskPriority
 
 
 class TaskBase(BaseModel):
-    title: str
+    title: str = Field(min_length=1, max_length=200)
     description: Optional[str] = None
     status: str = "todo"  # Allow custom statuses
     priority: TaskPriority = TaskPriority.MEDIUM
@@ -22,7 +24,7 @@ class TaskCreate(TaskBase):
 
 
 class TaskUpdate(BaseModel):
-    title: Optional[str] = None
+    title: Optional[str] = Field(default=None, min_length=1, max_length=200)
     description: Optional[str] = None
     status: Optional[str] = None  # Allow custom statuses
     priority: Optional[TaskPriority] = None
@@ -35,12 +37,11 @@ class TaskUpdate(BaseModel):
 
 
 class TaskResponse(TaskBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     user_id: int
     last_completed: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True

@@ -1,11 +1,13 @@
-from pydantic import BaseModel
-from typing import Optional, List, Any
 from datetime import datetime
+from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
+
 from ..models.note import NoteType
 
 
 class NoteBase(BaseModel):
-    title: str = "Untitled"
+    title: str = Field(default="Untitled", max_length=200)
     content: Optional[str] = None
     note_type: NoteType = NoteType.NOTE
     checklist_items: Optional[List[dict]] = None
@@ -20,7 +22,7 @@ class NoteCreate(NoteBase):
 
 
 class NoteUpdate(BaseModel):
-    title: Optional[str] = None
+    title: Optional[str] = Field(default=None, max_length=200)
     content: Optional[str] = None
     note_type: Optional[NoteType] = None
     checklist_items: Optional[List[dict]] = None
@@ -31,10 +33,27 @@ class NoteUpdate(BaseModel):
 
 
 class NoteResponse(NoteBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     user_id: int
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+
+class NoteListItem(BaseModel):
+    """List row without the (potentially large) note body."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    note_type: NoteType
+    parent_id: Optional[int] = None
+    tags: List[str] = []
+    is_pinned: bool = False
+    is_favorite: bool = False
+    excerpt: Optional[str] = None
+    checklist_items: Optional[List[dict]] = None
+    created_at: datetime
+    updated_at: datetime

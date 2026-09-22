@@ -1,12 +1,13 @@
 from fastapi import APIRouter
+
 from .auth import router as auth_router
-from .tasks import router as tasks_router
+from .bookmarks import router as bookmarks_router
+from .dashboard import router as dashboard_router
 from .events import router as events_router
 from .notes import router as notes_router
-from .bookmarks import router as bookmarks_router
-from .snippets import router as snippets_router
-from .dashboard import router as dashboard_router
 from .projects import router as projects_router
+from .snippets import router as snippets_router
+from .tasks import router as tasks_router
 
 api_router = APIRouter(prefix="/api")
 

@@ -10,7 +10,7 @@
 - 任务拖拽移动
 - 优先级设置（紧急/高/中/低）
 - 标签管理
-- 循环任务支持
+- 循环任务支持（完成后由后台定时任务按周期自动重置为待办）
 
 ### 📅 日程管理
 - 月视图 / 周视图切换
@@ -60,9 +60,10 @@
 
 ### 后端
 - FastAPI (Python)
-- SQLAlchemy ORM
+- SQLAlchemy ORM + Alembic 数据库迁移
 - MySQL 数据库
 - JWT 认证
+- pytest 测试套件
 
 ### 部署
 - Docker 容器化
@@ -72,7 +73,7 @@
 
 ### 环境要求
 - Docker & Docker Compose
-- Node.js 16+ (开发环境)
+- Node.js 18+ (开发环境)
 - Python 3.8+ (开发环境)
 
 ### 方式一：Docker Compose 部署（推荐）
@@ -82,11 +83,22 @@
 git clone https://github.com/Sean-keep/workspace.git
 cd workspace
 
+# 复制环境变量模板并填写（必须设置 SECRET_KEY / MYSQL_PASSWORD / MYSQL_ROOT_PASSWORD）
+cp .env.example .env
+# SECRET_KEY 建议用以下命令生成：
+#   openssl rand -base64 48
+
 # 启动所有服务
-docker-compose up -d
+docker compose up -d --build
 
 # 查看运行状态
-docker-compose ps
+docker compose ps
+```
+
+开发模式（后端热重载 + 映射 MySQL 3308 / Redis 6380）：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
 ### 方式二：手动部署
@@ -97,17 +109,24 @@ docker-compose ps
 # 登录 MySQL
 mysql -u root -p
 
-# 创建数据库和用户
+# 创建数据库和用户（密码请自行替换，不要使用示例明文）
 CREATE DATABASE personal_workspace CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'workspace'@'localhost' IDENTIFIED BY 'workspace123';
+CREATE USER 'workspace'@'localhost' IDENTIFIED BY '你的数据库密码';
 GRANT ALL PRIVILEGES ON personal_workspace.* TO 'workspace'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-执行初始化脚本创建表结构和默认数据：
+执行初始化脚本创建表结构（仅 DDL，不写入任何账号）：
 
 ```bash
 mysql -u workspace -p personal_workspace < scripts/init.sql
+```
+
+已有数据库可改用 Alembic 迁移：
+
+```bash
+cd backend
+alembic upgrade head
 ```
 
 #### 2. 准备 Redis
@@ -138,15 +157,17 @@ source venv/bin/activate   # Windows: venv\Scripts\activate
 # 安装依赖
 pip install -r requirements.txt
 
-# 配置环境变量（可选，不配置则使用默认值）
+# 配置环境变量（参考项目根目录 .env.example，也可直接复制为 backend/.env）
 export DB_HOST=localhost
 export DB_PORT=3306
 export DB_USER=workspace
-export DB_PASSWORD=workspace123
+export DB_PASSWORD=你的数据库密码
 export DB_NAME=personal_workspace
 export REDIS_HOST=localhost
 export REDIS_PORT=6379
-export SECRET_KEY=your-secret-key-change-in-production
+export SECRET_KEY=$(openssl rand -base64 48)
+export ADMIN_USERNAME=admin
+export ADMIN_PASSWORD=首次启动用的初始密码
 
 # 启动后端服务
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -183,7 +204,7 @@ server {
     }
 
     location /api/ {
-        proxy_pass http://localhost:8000/;
+        proxy_pass http://localhost:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
@@ -194,12 +215,51 @@ server {
 
 - 前端: http://localhost:3001
 - 后端 API: http://localhost:8000
-- API 文档: http://localhost:8000/docs
+- API 文档: http://localhost:8000/api/docs
 
-### 默认账号
+### 初始管理员
 
-- 用户名: `admin`
-- 密码: `admin123`
+首次启动时，后端在 `users` 表为空的情况下会根据 `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `ADMIN_EMAIL` 自动创建一个管理员账号（`scripts/init.sql` 只含表结构，不再写入默认账号）。
+
+**请在首次登录后立即修改该账号密码。**
+
+## 📡 API 约定
+
+所有接口返回统一包装结构：
+
+```json
+{ "code": 200, "msg": "success", "data": { ... } }
+```
+
+- `code` 与 HTTP 状态码一致；错误时 `data` 一般为 `null`
+- 列表接口为分页结构：
+
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": {
+    "items": [],
+    "total": 0,
+    "skip": 0,
+    "limit": 50
+  }
+}
+```
+
+## 🧪 测试与迁移
+
+```bash
+# 运行测试（无需 MySQL / Redis，使用内存 SQLite）
+make test
+# 或
+python -m pytest backend/tests -q
+
+# 执行数据库迁移
+make migrate
+# 或
+cd backend && alembic upgrade head
+```
 
 ## 📁 项目结构
 
@@ -219,10 +279,14 @@ personal-workspace/
 │   │   ├── models/         # 数据模型
 │   │   ├── schemas/        # 数据验证
 │   │   └── utils/          # 工具函数
+│   ├── alembic/            # 数据库迁移
+│   ├── tests/              # pytest 测试
 │   └── Dockerfile
 ├── scripts/                 # 初始化脚本
-│   └── init.sql            # 数据库建表及默认数据
+│   └── init.sql            # 数据库建表（仅 DDL）
 ├── docker-compose.yml       # Docker 编排配置
+├── docker-compose.dev.yml   # 开发覆盖（热重载 / 端口映射）
+├── .env.example             # 环境变量模板
 └── README.md
 ```
 
