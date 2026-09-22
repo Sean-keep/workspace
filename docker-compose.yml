@@ -104,9 +104,14 @@ services:
       - workspace-network
 
 volumes:
+  # Pin the on-disk names so compose reuses the volumes created by earlier
+  # `docker run` setups instead of allocating project-prefixed empties.
   workspace-mysql-data:
+    name: workspace-mysql-data
   workspace-redis-data:
+    name: workspace-redis-data
 
 networks:
   workspace-network:
+    name: workspace-network
     driver: bridge

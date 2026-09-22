@@ -19,6 +19,21 @@ if [[ ! -f .env ]]; then
   ./scripts/bootstrap-env.sh
 fi
 
+# Containers started before compose (no project labels) hold the well-known
+# container_name values. Compose cannot adopt them — drop and recreate.
+# Data lives in named volumes (workspace-*-data), which are preserved.
+legacy=0
+for c in workspace-mysql workspace-redis workspace-backend workspace-frontend; do
+  if [[ -n "$(docker inspect -f '{{.Id}}' "$c" 2>/dev/null)" ]]; then
+    if [[ -z "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' "$c" 2>/dev/null)" ]]; then
+      echo "==> Removing legacy container $c (volumes preserved)"
+      docker rm -f "$c" >/dev/null
+      legacy=1
+    fi
+  fi
+done
+[[ "$legacy" == "1" ]] && echo "    legacy containers cleared"
+
 if [[ "$FULL" == "1" ]]; then
   echo "==> Recreating full stack (volumes preserved)"
   docker compose up -d --build
@@ -26,7 +41,7 @@ else
   echo "==> Rebuilding app images (MySQL / Redis left running)"
   docker compose build workspace-backend workspace-frontend
   echo "==> Recreating app containers"
-  docker compose up -d --force-recreate workspace-backend workspace-frontend
+  docker compose up -d --force-recreate --no-deps workspace-backend workspace-frontend
 fi
 
 echo "==> Waiting for backend health"
