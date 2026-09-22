@@ -237,22 +237,23 @@ function handleCommand(command: string) {
 }
 
 .sidebar {
-  // One dark palette for the whole rail. Element Plus menu pulls its own
-  // --el-menu-* vars (default white), which is what left a white strip in the
-  // middle of the dark aside — pin them here so every layer matches.
-  --sidebar-bg: #1d1e1f;
-  --sidebar-fg: #cfd3dc;
-  --sidebar-hover: #2c2e30;
-  --sidebar-line: rgba(255, 255, 255, 0.08);
+  // Match the rest of the chrome (light header / light content) instead of a
+  // standalone dark rail. Everything keys off Element Plus vars so the whole
+  // sidebar follows theme (`.dark` on <html>) automatically.
+  --sidebar-bg: var(--el-bg-color);
+  --sidebar-fg: var(--el-text-color-regular);
+  --sidebar-hover: var(--el-fill-color-light);
+  --sidebar-line: var(--el-border-color-lighter);
 
   --el-menu-bg-color: var(--sidebar-bg);
   --el-menu-text-color: var(--sidebar-fg);
-  --el-menu-active-color: var(--el-color-primary, #409eff);
+  --el-menu-active-color: var(--el-color-primary);
   --el-menu-hover-bg-color: var(--sidebar-hover);
   --el-menu-item-hover-fill: var(--sidebar-hover);
   --el-menu-border-color: transparent;
 
   background-color: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-line);
   transition: width 0.3s;
   display: flex;
   flex-direction: column;
@@ -265,7 +266,7 @@ function handleCommand(command: string) {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: #fff;
+  color: var(--el-text-color-primary);
   cursor: pointer;
   border-bottom: 1px solid var(--sidebar-line);
 }
@@ -291,7 +292,7 @@ function handleCommand(command: string) {
     &:hover,
     &.is-active {
       background-color: var(--sidebar-hover);
-      color: var(--el-color-primary, #409eff);
+      color: var(--el-color-primary);
     }
   }
 }
@@ -312,8 +313,8 @@ function handleCommand(command: string) {
 }
 
 .header {
-  background-color: #fff;
-  border-bottom: 1px solid #e4e7ed;
+  background-color: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -347,13 +348,13 @@ function handleCommand(command: string) {
     align-items: center;
     justify-content: space-between;
     padding-bottom: 10px;
-    border-bottom: 1px solid #ebeef5;
+    border-bottom: 1px solid var(--el-border-color-lighter);
     margin-bottom: 10px;
 
     span {
       font-size: 14px;
       font-weight: 600;
-      color: #303133;
+      color: var(--el-text-color-primary);
     }
   }
 
@@ -362,7 +363,7 @@ function handleCommand(command: string) {
     align-items: flex-start;
     gap: 10px;
     padding: 10px 0;
-    border-bottom: 1px solid #f5f7fa;
+    border-bottom: 1px solid var(--el-border-color-lighter);
     cursor: pointer;
 
     &:last-child {
@@ -370,7 +371,7 @@ function handleCommand(command: string) {
     }
 
     &:hover {
-      background-color: #f5f7fa;
+      background-color: var(--el-fill-color-light);
     }
   }
 
@@ -379,13 +380,13 @@ function handleCommand(command: string) {
 
     .notification-title {
       font-size: 13px;
-      color: #303133;
+      color: var(--el-text-color-primary);
       margin-bottom: 2px;
     }
 
     .notification-time {
       font-size: 11px;
-      color: #909399;
+      color: var(--el-text-color-secondary);
     }
   }
 }
@@ -399,11 +400,11 @@ function handleCommand(command: string) {
 
 .username {
   font-size: 13px;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .content {
-  background-color: #f5f7fa;
+  background-color: var(--el-fill-color-lighter);
   padding: 16px;
   overflow-y: auto;
 }
