@@ -13,7 +13,8 @@ USE personal_workspace;
 -- 1) tasks.priority: native ENUM('LOW','MEDIUM','HIGH','URGENT') → VARCHAR
 ALTER TABLE tasks MODIFY priority VARCHAR(20) NOT NULL DEFAULT 'medium';
 
--- 2) priority / recurrence_type / note_type: name form → value form
+-- 2) priority / recurrence_type: name form → value form
+--    （note_type 一列已经随清单类型一起删掉，见 backend/alembic/versions/0002_drop_note_checklist.py）
 UPDATE tasks SET priority = LOWER(priority)
  WHERE priority IN ('LOW', 'MEDIUM', 'HIGH', 'URGENT');
 
@@ -27,13 +28,6 @@ UPDATE tasks SET recurrence_type = CASE UPPER(recurrence_type)
     ELSE recurrence_type
   END
  WHERE UPPER(recurrence_type) IN ('NONE','DAILY','WEEKDAYS','WEEKLY','MONTHLY','CUSTOM');
-
-UPDATE notes SET note_type = CASE UPPER(note_type)
-    WHEN 'NOTE' THEN 'note'
-    WHEN 'CHECKLIST' THEN 'checklist'
-    ELSE note_type
-  END
- WHERE UPPER(note_type) IN ('NOTE', 'CHECKLIST');
 
 -- 3) status is free-form (custom_*) so only fold the known built-ins
 UPDATE tasks SET status = CASE UPPER(status)
