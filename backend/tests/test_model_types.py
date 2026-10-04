@@ -3,7 +3,6 @@
 import pytest
 
 from app.models.task import RecurrenceType, TaskPriority
-from app.models.note import NoteType
 from app.models.types import SafeEnum
 
 
@@ -16,8 +15,6 @@ from app.models.types import SafeEnum
         (TaskPriority, TaskPriority.LOW, TaskPriority.LOW),
         (RecurrenceType, "NONE", RecurrenceType.NONE),
         (RecurrenceType, "weekdays", RecurrenceType.WEEKDAYS),
-        (NoteType, "NOTE", NoteType.NOTE),
-        (NoteType, "checklist", NoteType.CHECKLIST),
     ],
 )
 def test_safe_enum_accepts_name_value_and_case(enum_cls, raw, expected):

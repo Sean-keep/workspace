@@ -159,7 +159,7 @@ keyPassword=你的密钥口令
 EOF
 
 # 3. 出包 —— 有 keystore.properties 就自动走 release 签名
-./gradlew -p android assembleRelease
+cd android && ./gradlew assembleRelease
 # 产物：android/app/build/outputs/apk/release/app-release.apk
 ```
 
@@ -190,7 +190,7 @@ EOF
 | 🏠 **工作台** | 数据总览、待办任务、近期日程、项目进度、完成趋势图、最近笔记、站内通知 |
 | 📋 **任务** | 看板 / 列表双视图、拖拽换列、自定义状态（可拖拽排序）、优先级、标签、循环任务（按周期自动重置） |
 | 📅 **日程** | 月视图 / 周视图、事件管理、颜色标记、全天事件 |
-| 📝 **笔记** | Markdown 笔记、清单笔记、浏览 / 编辑双模式、全文检索 |
+| 📝 **笔记** | Markdown 笔记、浏览 / 编辑双模式、全文检索 |
 | 🔖 **书签** | 网站收藏、分类、站点图标 |
 | 📜 **脚本** | 代码片段管理、多语言高亮 |
 | 📁 **项目** | 子任务管理、看板 / 泳道 / 列表三视图、自定义子任务状态、进度按完成率自动统计 |

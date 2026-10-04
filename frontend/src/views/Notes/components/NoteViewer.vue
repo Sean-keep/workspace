@@ -14,25 +14,9 @@
 
     <!-- 内容区域 -->
     <div class="note-body">
-      <!-- 清单 -->
-      <template v-if="note.note_type === 'checklist'">
-        <div class="checklist-container">
-          <div v-for="(item, index) in note.checklist_items" :key="index" class="checklist-item">
-            <el-checkbox v-model="item.checked" disabled />
-            <span :class="{ checked: item.checked }">{{ item.text }}</span>
-          </div>
-          <div class="checklist-stats">
-            已完成 {{ getCheckedCount(note) }} / {{ note.checklist_items?.length || 0 }} 项
-          </div>
-        </div>
-      </template>
-
-      <!-- 笔记内容 -->
-      <template v-else>
-        <!-- 全离线：笔记里的远程图片 ![](http…) 断网时就是加载失败，其余 markdown 照常渲染。 -->
-        <!-- eslint-disable-next-line vue/no-v-html -- markdown-it defaults (html:false, javascript: blocked) -->
-        <div class="note-content" v-html="renderedContent" />
-      </template>
+      <!-- 全离线：笔记里的远程图片 ![](http…) 断网时就是加载失败，其余 markdown 照常渲染。 -->
+      <!-- eslint-disable-next-line vue/no-v-html -- markdown-it defaults (html:false, javascript: blocked) -->
+      <div class="note-content" v-html="renderedContent" />
     </div>
 
     <div class="note-meta">
@@ -43,7 +27,7 @@
 
 <script setup lang="ts">
 import type { Note } from '@/types/models'
-import { formatDate, getCheckedCount } from '../composables/useNotes'
+import { formatDate } from '../composables/useNotes'
 
 defineProps<{
   note: Note
@@ -114,33 +98,6 @@ defineProps<{
   :deep(ul), :deep(ol) {
     padding-left: 24px;
     margin-bottom: 12px;
-  }
-}
-
-.checklist-container {
-  .checklist-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 0;
-    border-bottom: 1px solid #f5f7fa;
-
-    &:last-of-type {
-      border-bottom: none;
-    }
-
-    .checked {
-      text-decoration: line-through;
-      color: #c0c4cc;
-    }
-  }
-
-  .checklist-stats {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid #ebeef5;
-    font-size: 14px;
-    color: #909399;
   }
 }
 

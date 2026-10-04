@@ -313,9 +313,8 @@ check('起始时间没被倒序钳制改写', events.every((e) => e.end_time >= 
 // ── 4. 笔记：正文入库 + 列表预览 ──────────────────────────────────────
 section('4. 笔记：正文入库，列表给预览')
 await goto('/notes')
-// 「新建」是个 dropdown（新建笔记 / 新建清单），默认 hover 触发 —— 这里点开它
+// 「新建」是个直接建笔记的按钮（清单类型已删，只剩一种笔记）
 await page.getByRole('button', { name: '新建' }).first().click()
-await page.locator('.el-dropdown-menu:visible .el-dropdown-menu__item').filter({ hasText: '新建笔记' }).click()
 await sleep(500)
 check('创建后直接进编辑态', (await page.locator('input[placeholder="笔记标题"]').count()) > 0)
 await page.locator('input[placeholder="笔记标题"]').fill('e2e 笔记甲')
@@ -538,7 +537,7 @@ await page.locator('.el-dialog:visible .el-button--primary').filter({ hasText: '
 await sleep(500)
 check('断网下也能建任务', (await idbAll('tasks')).some((t) => t.title === 'e2e 离线建的'))
 
-// 断网下编辑笔记 —— 这条专门盯「Proxy 写库」那个坑（清单项 / 标签是 reactive）
+// 断网下编辑笔记 —— 这条专门盯「Proxy 写库」那个坑（标签数组是 reactive）
 await navTo('笔记管理')
 await sleep(300)
 check('断网后笔记页还渲染', (await page.locator('body').innerText()).includes('e2e 笔记甲'))

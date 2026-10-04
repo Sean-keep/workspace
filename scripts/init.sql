@@ -54,8 +54,6 @@ CREATE TABLE IF NOT EXISTS notes (
     user_id INT NOT NULL,
     title VARCHAR(200) NOT NULL DEFAULT 'Untitled',
     content TEXT NULL,
-    note_type VARCHAR(20) NOT NULL DEFAULT 'note',
-    checklist_items JSON NULL,
     parent_id INT NULL,
     tags JSON NULL,
     is_pinned BOOLEAN NOT NULL DEFAULT FALSE,

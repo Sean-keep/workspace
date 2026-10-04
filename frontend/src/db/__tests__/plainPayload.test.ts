@@ -10,7 +10,7 @@ beforeEach(async () => {
 /**
  * 回归：Vue 的 reactive 树上抠下来的数据是 Proxy，Dexie 的 structured clone
  * 存不了它（DataCloneError）。以前这个错被 useResourceList 的 catch 吃掉，
- * UI 报「已保存」、库里一个字没动 —— 子任务 / 清单项 / 标签全都中招。
+ * UI 报「已保存」、库里一个字没动 —— 子任务 / 标签全都中招。
  *
  * 这里故意用真 Proxy 喂 repo，钉住「写库前先洗成纯对象」这条。
  */

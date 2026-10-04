@@ -3,22 +3,12 @@ import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
 import MarkdownIt from 'markdown-it'
 import { useResourceList, useConfirmDelete } from '@/composables'
-import type { ChecklistItem, Note, NoteType } from '@/types/models'
+import type { Note } from '@/types/models'
 
 const md = new MarkdownIt()
 
 export function formatDate(date: string) {
   return dayjs(date).format('YYYY-MM-DD HH:mm')
-}
-
-export function getCheckedCount(note: { checklist_items?: ChecklistItem[] | null } | null) {
-  if (!note?.checklist_items) return 0
-  return note.checklist_items.filter(item => item.checked).length
-}
-
-export function getChecklistProgress(note: { checklist_items?: ChecklistItem[] | null } | null) {
-  if (!note?.checklist_items?.length) return 0
-  return Math.round((getCheckedCount(note) / note.checklist_items.length) * 100)
 }
 
 export function getContentPreview(excerpt: string | null | undefined) {
@@ -42,7 +32,6 @@ export function useNotes() {
 
   const currentNote: Ref<Note | null> = ref(null)
   const searchQuery = ref('')
-  const filterType = ref('')
   const mode = ref<'browse' | 'edit'>('browse')
   const isEditing = ref(false)
   const saving = ref(false)
@@ -57,10 +46,6 @@ export function useNotes() {
           n.title.toLowerCase().includes(query) ||
           n.excerpt?.toLowerCase().includes(query)
       )
-    }
-
-    if (filterType.value) {
-      result = result.filter(n => n.note_type === filterType.value)
     }
 
     result.sort((a, b) => {
@@ -83,8 +68,7 @@ export function useNotes() {
     if (!full) return
     currentNote.value = {
       ...full,
-      content: full.content ?? '',
-      checklist_items: full.checklist_items ? [...full.checklist_items] : []
+      content: full.content ?? ''
     }
     isEditing.value = edit
     mode.value = 'edit'
@@ -110,7 +94,6 @@ export function useNotes() {
     title: string
     tags: string[]
     content?: string
-    checklist_items?: ChecklistItem[]
   }) {
     const note = currentNote.value
     if (!note) return
@@ -120,14 +103,7 @@ export function useNotes() {
       const updateData: Record<string, unknown> = {
         title: payload.title,
         tags: payload.tags,
-        note_type: note.note_type
-      }
-      if (note.note_type === 'checklist') {
-        updateData.checklist_items = (payload.checklist_items || []).filter(
-          item => item.text.trim() !== ''
-        )
-      } else {
-        updateData.content = payload.content
+        content: payload.content
       }
 
       const saved = await update(note.id, updateData, { refresh: false })
@@ -135,7 +111,6 @@ export function useNotes() {
         note.title = payload.title
         note.content = payload.content
         note.tags = [...payload.tags]
-        note.checklist_items = [...(payload.checklist_items || [])]
       }
       isEditing.value = false
       ElMessage.success('保存成功')
@@ -144,18 +119,11 @@ export function useNotes() {
     }
   }
 
-  async function createNoteByType(type: NoteType) {
-    const data: Record<string, unknown> = {
-      title: type === 'checklist' ? '新建清单' : '新建笔记',
-      note_type: type
-    }
-    if (type === 'checklist') {
-      data.checklist_items = [{ text: '', checked: false }]
-    } else {
-      data.content = ''
-    }
-
-    const created = (await create(data, { refresh: false })) as Note | null
+  async function createNote() {
+    const created = (await create(
+      { title: '新建笔记', content: '' },
+      { refresh: false }
+    )) as Note | null
     if (created) {
       notes.value.unshift(created)
       await openNote(created, true)
@@ -208,7 +176,6 @@ export function useNotes() {
     filteredNotes,
     currentNote,
     searchQuery,
-    filterType,
     mode,
     isEditing,
     saving,
@@ -219,7 +186,7 @@ export function useNotes() {
     cancelEdit,
     backToList,
     saveNote,
-    createNoteByType,
+    createNote,
     deleteNote,
     handleAction
   }

@@ -10,18 +10,12 @@
 
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
 export type RecurrenceType = 'none' | 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'custom'
-export type NoteType = 'note' | 'checklist'
 
 export interface TaskStatus {
   value: string
   label: string
   color: string
   isDefault?: boolean
-}
-
-export interface ChecklistItem {
-  text: string
-  checked: boolean
 }
 
 export interface Task {
@@ -62,13 +56,11 @@ export type TaskPayload = Partial<
 export interface NoteListItem {
   id: number
   title: string
-  note_type: NoteType
   parent_id: number | null
   tags: string[]
   is_pinned: boolean
   is_favorite: boolean
   excerpt: string | null
-  checklist_items: ChecklistItem[] | null
   created_at: string
   updated_at: string
 }
@@ -81,14 +73,7 @@ export interface Note extends NoteListItem {
 export type NotePayload = Partial<
   Pick<
     Note,
-    | 'title'
-    | 'content'
-    | 'note_type'
-    | 'checklist_items'
-    | 'parent_id'
-    | 'tags'
-    | 'is_pinned'
-    | 'is_favorite'
+    'title' | 'content' | 'parent_id' | 'tags' | 'is_pinned' | 'is_favorite'
   >
 >
 

@@ -1,13 +1,11 @@
 <template>
   <!--
-    手机端笔记卡片。列表行已经带 160 字 `excerpt` 且不含正文，直接用；
-    清单则换成进度条 + n/m（和表格的「内容预览」列同一套数据）。
+    手机端笔记卡片。列表行已经带 160 字 `excerpt` 且不含正文，直接用。
   -->
   <div class="note-card" @click="$emit('view', note)">
     <div class="card-head">
       <el-icon class="card-icon" :size="18">
-        <Finished v-if="note.note_type === 'checklist'" />
-        <Document v-else />
+        <Document />
       </el-icon>
       <div class="card-title">
         <el-tag v-if="note.is_pinned" size="small" type="warning" class="flag">置顶</el-tag>
@@ -16,16 +14,7 @@
       </div>
     </div>
 
-    <div v-if="note.note_type === 'checklist'" class="checklist-info">
-      <el-progress
-        :percentage="getChecklistProgress(note)"
-        :stroke-width="4"
-        :show-text="false"
-        class="checklist-bar"
-      />
-      <span>{{ getCheckedCount(note) }}/{{ note.checklist_items?.length || 0 }}</span>
-    </div>
-    <div v-else class="card-preview">{{ getContentPreview(note.excerpt) }}</div>
+    <div class="card-preview">{{ getContentPreview(note.excerpt) }}</div>
 
     <div class="card-foot">
       <div class="card-tags">
@@ -56,12 +45,7 @@
 
 <script setup lang="ts">
 import type { Note } from '@/types/models'
-import {
-  formatDate,
-  getChecklistProgress,
-  getCheckedCount,
-  getContentPreview
-} from '../composables/useNotes'
+import { formatDate, getContentPreview } from '../composables/useNotes'
 
 const props = defineProps<{ note: Note }>()
 
@@ -128,22 +112,6 @@ function onCommand(cmd: string) {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.checklist-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 8px;
-
-  .checklist-bar {
-    width: 80px;
-  }
-
-  span {
-    font-size: 12px;
-    color: #909399;
-  }
 }
 
 .card-foot {

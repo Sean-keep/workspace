@@ -38,6 +38,30 @@ export class WorkspaceDB extends Dexie {
       projects: '++id, status, priority, created_at',
       meta: 'key'
     })
+
+    // v2：清单类型整个砍掉（勾选并进 markdown `- [ ]`）。
+    // `note_type` 索引跟着下掉，旧清单笔记在 upgrade 里迁成 markdown 正文。
+    this.version(2)
+      .stores({
+        notes: '++id, parent_id, is_pinned, is_favorite, updated_at'
+      })
+      .upgrade(async tx => {
+        await tx
+          .table('notes')
+          .toCollection()
+          .modify((n: Record<string, unknown>) => {
+            const items = n.checklist_items as { text?: string; checked?: boolean }[] | null
+            if (Array.isArray(items) && items.length) {
+              // 清单项 → markdown 任务列表，勾选状态保留成 `[x]` / `[ ]`
+              const body = items
+                .map(it => `- [${it?.checked ? 'x' : ' '}] ${it?.text ?? ''}`.trimEnd())
+                .join('\n')
+              n.content = n.content ? `${String(n.content)}\n\n${body}` : body
+            }
+            delete n.note_type
+            delete n.checklist_items
+          })
+      })
   }
 }
 

@@ -1,5 +1,3 @@
-import enum
-
 from sqlalchemy import (
     JSON,
     Boolean,
@@ -15,12 +13,6 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from ..database import Base
-from .types import SafeEnum
-
-
-class NoteType(str, enum.Enum):
-    NOTE = "note"  # 普通笔记
-    CHECKLIST = "checklist"  # 清单
 
 
 class Note(Base):
@@ -30,8 +22,6 @@ class Note(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(200), nullable=False, default="Untitled")
     content = Column(Text, nullable=True)
-    note_type = Column(SafeEnum(NoteType), default=NoteType.NOTE)
-    checklist_items = Column(JSON, nullable=True)  # [{text: "...", checked: false}, ...]
     parent_id = Column(Integer, ForeignKey("notes.id", ondelete="SET NULL"), nullable=True)
     tags = Column(JSON, default=list)
     is_pinned = Column(Boolean, default=False)

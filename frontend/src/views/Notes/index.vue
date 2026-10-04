@@ -6,13 +6,11 @@
       :notes="filteredNotes"
       :loading="loading"
       :search-query="searchQuery"
-      :filter-type="filterType"
       @update:search-query="searchQuery = $event"
-      @update:filter-type="filterType = $event"
       @view="note => openNote(note, false)"
       @edit="note => openNote(note, true)"
       @delete="deleteNote"
-      @create="createNoteByType"
+      @create="createNote"
     />
 
     <!-- 查看/编辑模式 -->
@@ -23,8 +21,7 @@
             <el-icon><ArrowLeft /></el-icon>
             返回
           </el-button>
-          <el-tag v-if="currentNote?.note_type === 'checklist'" type="success">清单</el-tag>
-          <el-tag v-else>笔记</el-tag>
+          <el-tag>笔记</el-tag>
         </div>
         <div class="edit-header-right">
           <template v-if="isEditing">
@@ -61,7 +58,6 @@
         v-if="isEditing && currentNote"
         ref="editorRef"
         :note="currentNote"
-        :note-type="currentNote.note_type"
       />
       <NoteViewer
         v-else-if="currentNote"
@@ -84,7 +80,6 @@ const {
   loading,
   currentNote,
   searchQuery,
-  filterType,
   mode,
   isEditing,
   saving,
@@ -95,7 +90,7 @@ const {
   cancelEdit,
   backToList,
   saveNote,
-  createNoteByType,
+  createNote,
   deleteNote,
   handleAction
 } = useNotes()

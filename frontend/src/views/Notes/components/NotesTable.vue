@@ -10,36 +10,12 @@
           class="search-input"
           @update:model-value="$emit('update:searchQuery', $event)"
         />
-        <el-select
-          :model-value="filterType"
-          placeholder="类型"
-          clearable
-          @update:model-value="$emit('update:filterType', $event)"
-        >
-          <el-option label="全部" value="" />
-          <el-option label="笔记" value="note" />
-          <el-option label="清单" value="checklist" />
-        </el-select>
       </template>
       <template #right>
-        <el-dropdown @command="(cmd: string) => $emit('create', cmd as NoteType)">
-          <el-button type="primary">
-            <el-icon><Plus /></el-icon>
-            新建
-          </el-button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="note">
-                <el-icon><Document /></el-icon>
-                新建笔记
-              </el-dropdown-item>
-              <el-dropdown-item command="checklist">
-                <el-icon><Finished /></el-icon>
-                新建清单
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+        <el-button type="primary" @click="$emit('create')">
+          <el-icon><Plus /></el-icon>
+          新建
+        </el-button>
       </template>
     </PageHeader>
 
@@ -62,10 +38,9 @@
           row-class-name="clickable-row"
         >
           <el-table-column width="40">
-            <template #default="{ row }">
+            <template #default>
               <el-icon :size="18">
-                <Finished v-if="(row as Note).note_type === 'checklist'" />
-                <Document v-else />
+                <Document />
               </el-icon>
             </template>
           </el-table-column>
@@ -83,20 +58,7 @@
           <el-table-column label="内容预览" min-width="300">
             <template #default="{ row }">
               <div class="preview-cell">
-                <template v-if="(row as Note).note_type === 'checklist'">
-                  <div class="checklist-info">
-                    <el-progress
-                      :percentage="getChecklistProgress(row as Note)"
-                      :stroke-width="4"
-                      :show-text="false"
-                      style="width: 60px;"
-                    />
-                    <span>{{ getCheckedCount(row as Note) }}/{{ (row as Note).checklist_items?.length || 0 }}</span>
-                  </div>
-                </template>
-                <template v-else>
-                  <span class="preview-text">{{ getContentPreview((row as Note).excerpt) }}</span>
-                </template>
+                <span class="preview-text">{{ getContentPreview((row as Note).excerpt) }}</span>
               </div>
             </template>
           </el-table-column>
@@ -133,30 +95,23 @@
 </template>
 
 <script setup lang="ts">
-import type { Note, NoteType } from '@/types/models'
+import type { Note } from '@/types/models'
 import { PageHeader, ResponsiveList } from '@/components/index'
 import NoteCard from './NoteCard.vue'
-import {
-  formatDate,
-  getChecklistProgress,
-  getCheckedCount,
-  getContentPreview
-} from '../composables/useNotes'
+import { formatDate, getContentPreview } from '../composables/useNotes'
 
 defineProps<{
   notes: Note[]
   loading?: boolean
   searchQuery: string
-  filterType: string
 }>()
 
 defineEmits<{
   'update:searchQuery': [value: string]
-  'update:filterType': [value: string]
   view: [note: Note]
   edit: [note: Note]
   delete: [note: Note]
-  create: [type: NoteType]
+  create: []
 }>()
 </script>
 
@@ -193,17 +148,6 @@ defineEmits<{
     }
 
     .preview-cell {
-      .checklist-info {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-
-        span {
-          font-size: 12px;
-          color: #909399;
-        }
-      }
-
       .preview-text {
         font-size: 13px;
         color: #606266;

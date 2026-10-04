@@ -111,12 +111,10 @@ describe('notes 钩子', () => {
     const created = await repoCreate<Note>('notes', {
       title: '笔记',
       content: body,
-      note_type: 'note',
       parent_id: null,
       tags: [],
       is_pinned: false,
       is_favorite: false,
-      checklist_items: null
     })
 
     const list = await repoList<Note>('notes', { skip: 0, limit: 50 })
@@ -134,22 +132,18 @@ describe('notes 钩子', () => {
     await repoCreate<Note>('notes', {
       title: '顶层',
       content: 'a',
-      note_type: 'note',
       parent_id: null,
       tags: [],
       is_pinned: false,
       is_favorite: false,
-      checklist_items: null
     })
     await repoCreate<Note>('notes', {
       title: '子笔记',
       content: 'b',
-      note_type: 'note',
       parent_id: 1,
       tags: [],
       is_pinned: false,
       is_favorite: false,
-      checklist_items: null
     })
 
     const list = await repoList<Note>('notes', { skip: 0, limit: 50 })
@@ -165,12 +159,10 @@ describe('notes 钩子', () => {
     const n = await repoCreate<Note>('notes', {
       title: 't',
       content: '旧内容',
-      note_type: 'note',
       parent_id: null,
       tags: [],
       is_pinned: false,
       is_favorite: false,
-      checklist_items: null
     })
     const out = await repoUpdate<Note>('notes', n.id, { content: '新内容' })
     expect(out?.excerpt).toBe('新内容')
