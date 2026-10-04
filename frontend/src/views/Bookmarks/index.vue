@@ -99,6 +99,14 @@ onMounted(() => {
   }
 }
 
+// 手机（≤767px）。⚠️ 断点与 stores/ui.ts 的 MOBILE_MEDIA、
+// assets/styles/main.scss 的 $bp-mobile 保持同步（768px）。
+@media (max-width: 767px) {
+  .bookmarks-page .bookmarks-header .search-input {
+    width: 100%;
+  }
+}
+
 .bookmarks-container {
   .category-section {
     margin-bottom: 32px;

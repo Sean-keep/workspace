@@ -43,84 +43,99 @@
       </template>
     </PageHeader>
 
-    <el-table
-      :data="notes"
-      style="width: 100%"
-      @row-click="(row: Note) => $emit('view', row)"
-      row-class-name="clickable-row"
-    >
-      <el-table-column width="40">
-        <template #default="{ row }">
-          <el-icon :size="18">
-            <Finished v-if="(row as Note).note_type === 'checklist'" />
-            <Document v-else />
-          </el-icon>
-        </template>
-      </el-table-column>
+    <!-- 桌面 = 原表 + 原空态不动；手机 = NoteCard -->
+    <ResponsiveList :items="notes" :loading="loading" empty-text="暂无笔记">
+      <template #mobile="{ item }">
+        <NoteCard
+          :note="item"
+          @view="(note: Note) => $emit('view', note)"
+          @edit="(note: Note) => $emit('edit', note)"
+          @delete="(note: Note) => $emit('delete', note)"
+        />
+      </template>
 
-      <el-table-column prop="title" label="标题" min-width="200">
-        <template #default="{ row }">
-          <div class="title-cell">
-            <el-tag v-if="(row as Note).is_pinned" size="small" type="warning" class="mr-2">置顶</el-tag>
-            <el-tag v-if="(row as Note).is_favorite" size="small" type="danger" class="mr-2">收藏</el-tag>
-            <span class="title-text">{{ (row as Note).title }}</span>
-          </div>
-        </template>
-      </el-table-column>
+      <template #desktop>
+        <el-table
+          :data="notes"
+          style="width: 100%"
+          @row-click="(row: Note) => $emit('view', row)"
+          row-class-name="clickable-row"
+        >
+          <el-table-column width="40">
+            <template #default="{ row }">
+              <el-icon :size="18">
+                <Finished v-if="(row as Note).note_type === 'checklist'" />
+                <Document v-else />
+              </el-icon>
+            </template>
+          </el-table-column>
 
-      <el-table-column label="内容预览" min-width="300">
-        <template #default="{ row }">
-          <div class="preview-cell">
-            <template v-if="(row as Note).note_type === 'checklist'">
-              <div class="checklist-info">
-                <el-progress
-                  :percentage="getChecklistProgress(row as Note)"
-                  :stroke-width="4"
-                  :show-text="false"
-                  style="width: 60px;"
-                />
-                <span>{{ getCheckedCount(row as Note) }}/{{ (row as Note).checklist_items?.length || 0 }}</span>
+          <el-table-column prop="title" label="标题" min-width="200">
+            <template #default="{ row }">
+              <div class="title-cell">
+                <el-tag v-if="(row as Note).is_pinned" size="small" type="warning" class="mr-2">置顶</el-tag>
+                <el-tag v-if="(row as Note).is_favorite" size="small" type="danger" class="mr-2">收藏</el-tag>
+                <span class="title-text">{{ (row as Note).title }}</span>
               </div>
             </template>
-            <template v-else>
-              <span class="preview-text">{{ getContentPreview((row as Note).excerpt) }}</span>
+          </el-table-column>
+
+          <el-table-column label="内容预览" min-width="300">
+            <template #default="{ row }">
+              <div class="preview-cell">
+                <template v-if="(row as Note).note_type === 'checklist'">
+                  <div class="checklist-info">
+                    <el-progress
+                      :percentage="getChecklistProgress(row as Note)"
+                      :stroke-width="4"
+                      :show-text="false"
+                      style="width: 60px;"
+                    />
+                    <span>{{ getCheckedCount(row as Note) }}/{{ (row as Note).checklist_items?.length || 0 }}</span>
+                  </div>
+                </template>
+                <template v-else>
+                  <span class="preview-text">{{ getContentPreview((row as Note).excerpt) }}</span>
+                </template>
+              </div>
             </template>
-          </div>
-        </template>
-      </el-table-column>
+          </el-table-column>
 
-      <el-table-column label="标签" width="200">
-        <template #default="{ row }">
-          <div class="tags-cell">
-            <el-tag v-for="tag in (row as Note).tags?.slice(0, 2)" :key="tag" size="small" type="info">
-              {{ tag }}
-            </el-tag>
-            <span v-if="(row as Note).tags?.length > 2" class="more-tags">+{{ (row as Note).tags!.length - 2 }}</span>
-          </div>
-        </template>
-      </el-table-column>
+          <el-table-column label="标签" width="200">
+            <template #default="{ row }">
+              <div class="tags-cell">
+                <el-tag v-for="tag in (row as Note).tags?.slice(0, 2)" :key="tag" size="small" type="info">
+                  {{ tag }}
+                </el-tag>
+                <span v-if="(row as Note).tags?.length > 2" class="more-tags">+{{ (row as Note).tags!.length - 2 }}</span>
+              </div>
+            </template>
+          </el-table-column>
 
-      <el-table-column label="更新时间" width="150">
-        <template #default="{ row }">
-          <span class="time-text">{{ formatDate((row as Note).updated_at) }}</span>
-        </template>
-      </el-table-column>
+          <el-table-column label="更新时间" width="150">
+            <template #default="{ row }">
+              <span class="time-text">{{ formatDate((row as Note).updated_at) }}</span>
+            </template>
+          </el-table-column>
 
-      <el-table-column label="操作" width="120" fixed="right">
-        <template #default="{ row }">
-          <el-button type="primary" link @click.stop="$emit('edit', row as Note)">编辑</el-button>
-          <el-button type="danger" link @click.stop="$emit('delete', row as Note)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+          <el-table-column label="操作" width="120" fixed="right">
+            <template #default="{ row }">
+              <el-button type="primary" link @click.stop="$emit('edit', row as Note)">编辑</el-button>
+              <el-button type="danger" link @click.stop="$emit('delete', row as Note)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
 
-    <el-empty v-if="notes.length === 0" description="暂无笔记" />
+        <el-empty v-if="notes.length === 0" description="暂无笔记" />
+      </template>
+    </ResponsiveList>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { Note, NoteType } from '@/types/models'
-import { PageHeader } from '@/components/index'
+import { PageHeader, ResponsiveList } from '@/components/index'
+import NoteCard from './NoteCard.vue'
 import {
   formatDate,
   getChecklistProgress,
@@ -130,6 +145,7 @@ import {
 
 defineProps<{
   notes: Note[]
+  loading?: boolean
   searchQuery: string
   filterType: string
 }>()
@@ -215,5 +231,20 @@ defineEmits<{
 
 :deep(.el-table .el-table__row) {
   cursor: pointer;
+}
+
+// 手机（≤767px）。⚠️ 断点与 stores/ui.ts 的 MOBILE_MEDIA、
+// assets/styles/main.scss 的 $bp-mobile 保持同步（768px）。
+// 手机走卡片，白底圆角由 .browse-mode 继续提供。
+@media (max-width: 767px) {
+  .browse-mode {
+    .browse-header {
+      padding: 12px;
+
+      .search-input {
+        width: 100%;
+      }
+    }
+  }
 }
 </style>

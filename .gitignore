@@ -47,5 +47,15 @@ Thumbs.db
 *.db
 *.sqlite
 
+# Android / Capacitor（`frontend/android` 的工程源码要提交，构建产物不要）
+local.properties
+.gradle/
+*.apk
+*.aab
+captures/
+.cxx/
+*.keystore
+*.jks
+
 # Stray test artifacts
 :memory

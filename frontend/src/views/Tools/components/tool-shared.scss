@@ -11,3 +11,16 @@
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
+
+// 手机（≤767px）：双列变单列。⚠️ 断点与 stores/ui.ts 的 MOBILE_MEDIA、
+// assets/styles/main.scss 的 $bp-mobile 保持同步（768px）。
+@media (max-width: 767px) {
+  .tool-content {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .tool-container {
+    padding: 8px;
+  }
+}

@@ -1,19 +1,22 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { Capacitor } from '@capacitor/core'
+import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 
+/**
+ * 路由历史：浏览器走 history（URL 干净，nginx 有 SPA 回落）；原生 APK 走 hash。
+ *
+ * Capacitor 的本地服务器只认得到 `assets/public` 里真实存在的文件，`/settings`
+ * 这种路径刷新会 404 —— 设置页导入完还要 `location.reload()`，会踩到。hash 模式
+ * 下路径永远是 `/`，刷新安全；浏览器端行为一个像素都不变。
+ */
+const history = Capacitor.isNativePlatform() ? createWebHashHistory() : createWebHistory()
+
 const router = createRouter({
-  history: createWebHistory(),
+  history,
   routes: [
-    {
-      path: '/login',
-      name: 'Login',
-      component: () => import('@/views/Login/index.vue'),
-      meta: { requiresAuth: false }
-    },
     {
       path: '/',
       component: MainLayout,
-      meta: { requiresAuth: true },
       children: [
         {
           path: '',
@@ -74,17 +77,5 @@ const router = createRouter({
   ]
 })
 
-// Navigation guard
-router.beforeEach((to, _from, next) => {
-  const token = localStorage.getItem('token')
-
-  if (to.meta.requiresAuth !== false && !token) {
-    next('/login')
-  } else if (to.path === '/login' && token) {
-    next('/')
-  } else {
-    next()
-  }
-})
-
+// 没有服务端，也就没有登录 —— 不设导航守卫，装完直接进工作台。
 export default router

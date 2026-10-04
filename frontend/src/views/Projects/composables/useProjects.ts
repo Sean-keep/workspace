@@ -86,7 +86,7 @@ export function useProjects() {
     update,
     remove,
     refresh
-  } = useResourceList<Project>({ path: '/projects', pageSize: 200 })
+  } = useResourceList<Project>({ table: 'projects', pageSize: 200 })
 
   const { confirmDelete } = useConfirmDelete()
   const projectDialog = useDialogForm<Project>()

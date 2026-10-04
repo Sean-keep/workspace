@@ -1,3 +1,8 @@
+# ⚠️ 遗留栈 —— 产品已经改成本地离线版（浏览器 IndexedDB + Android APK），
+# 运行时不再启动这套 FastAPI + MySQL + Redis。文件留着当规格书：后端的模型
+# 与 pytest 套件就是前端 `frontend/src/db/` 移植逻辑的参考实现。
+# 要跑的是 `frontend/`（npm run dev）或 Android 包（npm run apk:build）。
+#
 # Secrets come from .env (copy .env.example → .env). Compose refuses to start
 # if MYSQL_PASSWORD / MYSQL_ROOT_PASSWORD / SECRET_KEY / REDIS_PASSWORD are missing.
 # Image prefixes are the Huawei Cloud SWR mirrors used on this network.

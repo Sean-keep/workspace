@@ -5,7 +5,16 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import { useUiStore } from '@/stores/ui'
+
+// 断点检测要赶在 MainLayout 渲染之前就绪，否则首帧会先画桌面壳再跳成手机壳。
+const ui = useUiStore()
+ui.init()
+onMounted(() => {
+  ui.init() // 幂等，SSR/挂载时序的兜底
+})
 </script>
 
 <style>

@@ -29,6 +29,7 @@
 
       <!-- 笔记内容 -->
       <template v-else>
+        <!-- 全离线：笔记里的远程图片 ![](http…) 断网时就是加载失败，其余 markdown 照常渲染。 -->
         <!-- eslint-disable-next-line vue/no-v-html -- markdown-it defaults (html:false, javascript: blocked) -->
         <div class="note-content" v-html="renderedContent" />
       </template>

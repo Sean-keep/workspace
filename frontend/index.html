@@ -2,8 +2,21 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <!--
+      viewport-fit=cover 让页面铺到刘海屏的安全区里，安全区留白由 CSS 的
+      env(safe-area-inset-*) 处理（见 assets/styles/main.scss）。
+      刻意不加 maximum-scale=1 / user-scalable=no —— 可访问性反模式，而且没必要。
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#409eff" />
+    <meta name="description" content="任务、日程、笔记、书签 —— 一个页面管好自己的事" />
+    <!-- 「添加到主屏幕」后全屏运行。裸 HTTP 内网装得上 manifest，但 Service Worker / Notification 都要 secure context，这里没有 -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <title>个人工作台</title>
   </head>
   <body>

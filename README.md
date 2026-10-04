@@ -1,23 +1,22 @@
 # 个人工作台 · Personal Workspace
 
-> 一个自托管的个人工作管理平台：任务 / 日程 / 笔记 / 书签 / 脚本 / 项目，一个工作台看全。
+> 一个个人工作管理平台：任务 / 日程 / 笔记 / 书签 / 脚本 / 项目，一个工作台看全。
+> **现在是全离线版** —— 数据存在本机，装完就用，不联网。
 
-![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Vue 3](https://img.shields.io/badge/Vue%203-42B883?logo=vuedotjs&logoColor=white)
 ![Element Plus](https://img.shields.io/badge/Element%20Plus-409EFF)
-![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![Dexie](https://img.shields.io/badge/Dexie-IndexedDB-3E6CFF)
+![Android](https://img.shields.io/badge/Android-APK-3DDC84?logo=android&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
 ## 目录
 
+- [📴 本地离线版 / Android APK](#-本地离线版--android-apk)　**← 从这里开始**
 - [功能特性](#-功能特性)
 - [技术栈](#-技术栈)
-- [快速开始](#-快速开始)
+- [快速开始（遗留的服务端栈）](#-快速开始遗留的服务端栈)
 - [配置说明](#-配置说明)
 - [开发指南](#-开发指南)
 - [测试](#-测试)
@@ -25,6 +24,92 @@
 - [API 约定](#-api-约定)
 - [安全说明](#-安全说明)
 - [许可证](#-许可证)
+
+---
+
+## 📴 本地离线版 / Android APK
+
+**装完就用，完全不联网。** 没有服务端、没有账号、没有同步 —— 六类数据全住在浏览器 / WebView 的
+[IndexedDB](https://developer.mozilla.org/docs/Web/API/IndexedDB_API) 里（[Dexie](https://dexie.org/) 封装），
+**只在这台设备上**。
+
+### 数据住哪 · 怎么备份
+
+| | |
+| --- | --- |
+| 位置 | 浏览器 / WebView 的 IndexedDB，库名 `personal-workspace` |
+| 生命周期 | 跟着浏览器 / App 走。清站点数据、卸载 App = **数据没了** |
+| 备份 | **JSON 导出 / 导入是唯一备份手段**，别只靠它活 |
+| 位置 | 设置 → 数据 → 导出数据（原生端写到 Documents，浏览器端下载 `.json`） |
+| 还原 | 设置 → 数据 → 导入数据。**整体覆盖**本机数据，不做合并（合并要重映射 ID，也表达不了删除） |
+| 多设备 | 各自独立。想在手机上接着用，导出 → 传文件 → 导入 |
+
+> 🔴 既然没有服务端，**导出就是唯一后悔药**。重要数据请定期导出到云盘 / 电脑。
+
+### 直接在浏览器里跑
+
+```bash
+cd frontend
+npm install
+npm run dev        # 开发，http://localhost:5173
+npm run build && npm run preview   # 产物预览
+```
+
+### 打 Android APK
+
+```bash
+cd frontend
+npm install
+
+# 一条命令：build 前端 → cap sync → gradlew assembleDebug
+npm run apk:build
+# 产物：android/app/build/outputs/apk/debug/app-debug.apk
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+只要改动了 `src/`，先 `npm run cap:sync`（build + 把 `dist/` 拷进 Android 工程），再重打。
+
+**命令行工具链**（没有 Android Studio 时）：
+
+```bash
+# JDK 21
+apt-get install -y openjdk-21-jdk
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+
+# Android SDK —— 只要 platform-tools / platforms;android-35 / build-tools;35.0.0
+mkdir -p /opt/android-sdk/cmdline-tools
+curl -fsSL -o /tmp/cmdtools.zip \
+  https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+unzip -q /tmp/cmdtools.zip -d /opt/android-sdk/cmdline-tools
+mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest
+export ANDROID_HOME=/opt/android-sdk
+export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+yes | sdkmanager --licenses
+sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+# gradle 认的是 local.properties，不是环境变量
+printf 'sdk.dir=/opt/android-sdk\n' > android/local.properties
+```
+
+**退路**：把整个 `frontend/android/` 交给装了 Android Studio 的机器，打开它，点 ▶ / `./gradlew assembleDebug` 也能出包。
+前端产物已经由 `npx cap sync` 拷进 `android/app/src/main/assets/public/`，那边不需要 Node。
+
+### 离线约束（知道就行）
+
+- **书签打开**是真跳出去看网页，那一下需要网。书签的图标是域名首字母，不发请求。
+- 笔记里的远程图片 `![](http…)` 离线时就是加载失败，其余 markdown 照常渲染。
+- 原生端打开链接走 Chrome Custom Tab，返回后 App 状态还在。
+- **APK 装完就是离线的**：页面、样式、脚本都打在包里，Capacitor 从 `assets/public`
+  本地伺服。浏览器版第一次要能连上服务器把页面拉下来，之后断网照常用
+  （路由 chunk 走 HTTP 缓存；清了浏览器缓存就得再联网一次）。
+
+### 规划中
+
+- **App-PIN**：启动时要 4 位数字锁。目前装完直接进工作台。
+
+---
+
+## ✨ 功能特性
 
 ---
 
@@ -47,16 +132,20 @@
 
 | 层 | 选型 |
 | --- | --- |
-| **前端** | Vue 3 · TypeScript · Vite · Element Plus · Pinia · Vue Router · Axios · Day.js · markdown-it |
-| **后端** | FastAPI · SQLAlchemy 2.0 · Pydantic v2 · Alembic · python-jose · bcrypt |
-| **数据** | MySQL 8.0（业务数据）· Redis 7（登录限流，可降级到内存） |
-| **部署** | Docker · Docker Compose · Nginx（前端静态资源 + `/api` 反代） |
+| **前端** | Vue 3 · TypeScript · Vite · Element Plus · Pinia · Vue Router · Day.js · markdown-it |
+| **数据（现役）** | Dexie 4 → 浏览器 IndexedDB。JSON 导出 / 导入做备份 |
+| **打包** | Capacitor 7 → Android APK |
+| **后端 / 数据（遗留）** | FastAPI · SQLAlchemy 2.0 · Pydantic v2 · MySQL 8.0 · Redis 7 —— **运行时不再启动**，留作移植规格书 |
 
-> 镜像默认走华为云 SWR 镜像加速（`swr.cn-north-4.myhuaweicloud.com/...`）。在可直连 Docker Hub 的网络里，把 `Dockerfile` / `docker-compose.yml` 中的前缀去掉即可。
+> 下面「快速开始」那套 Docker / FastAPI / MySQL 是**遗留的服务端栈**。要跑的产品见上面的
+> [本地离线版](#-本地离线版--android-apk)。镜像前缀是华为云 SWR 加速，可直连 Docker Hub 的网络里去掉即可。
 
 ---
 
-## 🚀 快速开始
+## 🚀 快速开始（遗留的服务端栈）
+
+> ⚠️ 这一节描述的是**改造前**的 FastAPI + MySQL 部署，已不再使用。产品现在是
+> [本地离线版](#-本地离线版--android-apk)。下面保留只作参考。
 
 ### 环境要求
 

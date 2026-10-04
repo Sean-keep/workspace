@@ -24,3 +24,26 @@
 .mt-16 {
   margin-top: 16px;
 }
+
+// 手机（≤767px）。⚠️ 断点与 stores/ui.ts 的 MOBILE_MEDIA、
+// assets/styles/main.scss 的 $bp-mobile 保持同步（768px）。
+// 这是普通 partial，不是 scoped SFC，但进到各组件后仍然按 data-v 限定，
+// 且整段被 media 夹住 —— 同 Tools/components/tool-shared.scss 的写法。
+@media (max-width: 767px) {
+  .list-card {
+    // 380px 固定高度在手机上空滚一大截，高度交给内容
+    height: auto;
+    // EP 的 --el-card-padding 同时管 __header / __body，一个变量省掉 :deep
+    --el-card-padding: 12px;
+  }
+
+  // 卡里套 300px 滚动条 → 手机上列表自然流，整页只滚一次
+  .list-scroll {
+    height: auto;
+    overflow-y: visible;
+  }
+
+  .mt-16 {
+    margin-top: 12px;
+  }
+}

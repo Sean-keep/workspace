@@ -106,4 +106,29 @@ function getBarHeight(count: number) {
   color: #303133;
   margin-top: 2px;
 }
+
+// 手机（≤767px）。⚠️ 断点与 stores/ui.ts 的 MOBILE_MEDIA、
+// assets/styles/main.scss 的 $bp-mobile 保持同步（768px）。
+// .chart-card 不是 .list-card，card-shared 收不到它，单独收高度。
+@media (max-width: 767px) {
+  .chart-card {
+    height: auto;
+    --el-card-padding: 12px;
+  }
+
+  .trend-chart {
+    height: 140px;
+    padding: 8px 0;
+  }
+
+  // 7 根柱在 320px 下每根只有 ~35px，柱距收窄省宽度
+  .trend-bars {
+    gap: 4px;
+  }
+
+  .trend-label {
+    font-size: 10px;
+    margin-top: 4px;
+  }
+}
 </style>

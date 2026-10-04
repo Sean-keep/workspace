@@ -77,4 +77,12 @@ onMounted(() => {
     }
   }
 }
+
+// 手机（≤767px）。⚠️ 断点与 stores/ui.ts 的 MOBILE_MEDIA、
+// assets/styles/main.scss 的 $bp-mobile 保持同步（768px）。
+@media (max-width: 767px) {
+  .scripts-page .scripts-header .search-input {
+    width: 100%;
+  }
+}
 </style>

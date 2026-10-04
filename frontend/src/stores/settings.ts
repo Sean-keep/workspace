@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import api from '@/utils/api'
+import { db } from '@/db'
+import { toPlain } from '@/db/plain'
 
 export interface TaskStatus {
   value: string
@@ -40,11 +41,10 @@ function readLocal(): Partial<UserSettings> {
 }
 
 /**
- * Appearance + per-user preferences.
+ * Appearance + user preferences.
  *
- * Local storage is only a cache so a hard refresh keeps the theme before
- * `/auth/me` resolves; the server copy (`users.settings`) is the source of
- * truth and wins whenever it disagrees.
+ * 真源是本地库的 `meta.settings`；localStorage 只是硬刷新时抢在 IndexedDB
+ * 前先上主题的缓存。两边都写，读的时候本地缓存先上、meta 后到。
  */
 export const useSettingsStore = defineStore('settings', () => {
   const theme = ref<'light' | 'dark'>('light')
@@ -80,11 +80,10 @@ export const useSettingsStore = defineStore('settings', () => {
   async function load() {
     patch(readLocal())
     try {
-      const res: any = await api.get('/auth/me')
-      const server = (res.data?.settings || {}) as Partial<UserSettings>
-      patch(server)
+      const row = await db.meta.get('settings')
+      if (row?.value) patch(row.value as Partial<UserSettings>)
     } catch {
-      // offline / not logged in — local cache already applied
+      // 本地缓存已经上过主题了
     } finally {
       loaded.value = true
     }
@@ -98,7 +97,8 @@ export const useSettingsStore = defineStore('settings', () => {
       fontSize: fontSize.value,
       taskStatuses: taskStatuses.value
     }
-    await api.put('/auth/me', { settings })
+    // taskStatuses 是 reactive 数组 —— 不洗成纯对象，Dexie 会 DataCloneError
+    await db.meta.put({ key: 'settings', value: toPlain(settings) })
   }
 
   // Keep the cache fresh whenever a value is edited in place.

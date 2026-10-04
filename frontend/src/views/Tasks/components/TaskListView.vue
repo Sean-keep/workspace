@@ -1,67 +1,86 @@
 <template>
   <div class="task-list">
-    <el-table :data="tasks" stripe>
-      <el-table-column width="50">
-        <template #default="{ row }">
-          <el-checkbox
-            :model-value="isCompleted((row as Task).status)"
-            @change="(val: boolean | string | number) => $emit('toggle', row as Task, Boolean(val))"
-          />
-        </template>
-      </el-table-column>
+    <!-- 桌面 = 原表不动；手机 = TaskRow 卡片（勾选框 + 标题 + 元信息 + ⋮ 菜单） -->
+    <ResponsiveList :items="tasks" :loading="loading" empty-text="暂无任务">
+      <template #mobile="{ item }">
+        <TaskRow
+          :task="item"
+          :is-completed="isCompleted"
+          :status-label="statusLabel"
+          :status-color="statusColor"
+          @toggle="(task: Task, done: boolean) => $emit('toggle', task, done)"
+          @edit="(task: Task) => $emit('edit', task)"
+          @delete="(task: Task) => $emit('delete', task)"
+        />
+      </template>
 
-      <el-table-column prop="title" label="任务名称" min-width="200">
-        <template #default="{ row }">
-          <div class="task-title-cell">
-            <span :class="{ done: isCompleted((row as Task).status) }">{{ (row as Task).title }}</span>
-            <el-tag v-if="(row as Task).is_recurring" type="warning" size="small" class="task-tag">
-              <el-icon><Refresh /></el-icon>
-              {{ getRecurrenceLabel((row as Task).recurrence_type) }}
-            </el-tag>
-            <el-tag v-for="tag in (row as Task).tags" :key="tag" size="small" class="task-tag">
-              {{ tag }}
-            </el-tag>
-          </div>
-        </template>
-      </el-table-column>
+      <template #desktop>
+        <el-table :data="tasks" stripe>
+          <el-table-column width="50">
+            <template #default="{ row }">
+              <el-checkbox
+                :model-value="isCompleted((row as Task).status)"
+                @change="(val: boolean | string | number) => $emit('toggle', row as Task, Boolean(val))"
+              />
+            </template>
+          </el-table-column>
 
-      <el-table-column prop="priority" label="优先级" width="100">
-        <template #default="{ row }">
-          <el-tag :type="getPriorityType((row as Task).priority)" size="small">
-            {{ getPriorityLabel((row as Task).priority) }}
-          </el-tag>
-        </template>
-      </el-table-column>
+          <el-table-column prop="title" label="任务名称" min-width="200">
+            <template #default="{ row }">
+              <div class="task-title-cell">
+                <span :class="{ done: isCompleted((row as Task).status) }">{{ (row as Task).title }}</span>
+                <el-tag v-if="(row as Task).is_recurring" type="warning" size="small" class="task-tag">
+                  <el-icon><Refresh /></el-icon>
+                  {{ getRecurrenceLabel((row as Task).recurrence_type) }}
+                </el-tag>
+                <el-tag v-for="tag in (row as Task).tags" :key="tag" size="small" class="task-tag">
+                  {{ tag }}
+                </el-tag>
+              </div>
+            </template>
+          </el-table-column>
 
-      <el-table-column prop="status" label="状态" width="120">
-        <template #default="{ row }">
-          <el-tag :color="statusColor((row as Task).status)" size="small" effect="dark">
-            {{ statusLabel((row as Task).status) }}
-          </el-tag>
-        </template>
-      </el-table-column>
+          <el-table-column prop="priority" label="优先级" width="100">
+            <template #default="{ row }">
+              <el-tag :type="getPriorityType((row as Task).priority)" size="small">
+                {{ getPriorityLabel((row as Task).priority) }}
+              </el-tag>
+            </template>
+          </el-table-column>
 
-      <el-table-column prop="due_date" label="截止日期" width="150">
-        <template #default="{ row }">
-          <span v-if="(row as Task).due_date" :class="{ overdue: isOverdue((row as Task).due_date) }">
-            {{ formatDate((row as Task).due_date) }}
-          </span>
-          <span v-else class="text-muted">-</span>
-        </template>
-      </el-table-column>
+          <el-table-column prop="status" label="状态" width="120">
+            <template #default="{ row }">
+              <el-tag :color="statusColor((row as Task).status)" size="small" effect="dark">
+                {{ statusLabel((row as Task).status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
 
-      <el-table-column label="操作" width="120" fixed="right">
-        <template #default="{ row }">
-          <el-button type="primary" link @click="$emit('edit', row as Task)">编辑</el-button>
-          <el-button type="danger" link @click="$emit('delete', row as Task)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+          <el-table-column prop="due_date" label="截止日期" width="150">
+            <template #default="{ row }">
+              <span v-if="(row as Task).due_date" :class="{ overdue: isOverdue((row as Task).due_date) }">
+                {{ formatDate((row as Task).due_date) }}
+              </span>
+              <span v-else class="text-muted">-</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="操作" width="120" fixed="right">
+            <template #default="{ row }">
+              <el-button type="primary" link @click="$emit('edit', row as Task)">编辑</el-button>
+              <el-button type="danger" link @click="$emit('delete', row as Task)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </template>
+    </ResponsiveList>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { Task } from '@/types/models'
+import { ResponsiveList } from '@/components/index'
+import TaskRow from './TaskRow.vue'
 import {
   formatDate,
   getPriorityLabel,
@@ -72,6 +91,7 @@ import {
 
 defineProps<{
   tasks: Task[]
+  loading?: boolean
   isCompleted: (status: string) => boolean
   statusLabel: (status: string) => string
   statusColor: (status: string) => string
@@ -112,5 +132,14 @@ defineEmits<{
 
 .overdue {
   color: #f56c6c;
+}
+
+// 手机（≤767px）。⚠️ 断点与 stores/ui.ts 的 MOBILE_MEDIA、
+// assets/styles/main.scss 的 $bp-mobile 保持同步（768px）。
+// 手机走卡片，白底圆角由 .task-list 继续提供。
+@media (max-width: 767px) {
+  .task-list {
+    background-color: transparent;
+  }
 }
 </style>

@@ -3,11 +3,29 @@ import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
 import { useResourceList, useConfirmDelete, useDialogForm } from '@/composables'
 import { useSettingsStore } from '@/stores/settings'
+import { useUiStore } from '@/stores/ui'
 import type { Task, TaskPayload, TaskPriority, RecurrenceType } from '@/types/models'
 
 export const commonTags = ['工作', '学习', '生活', '紧急', '重要']
 
 export type TagType = 'success' | 'info' | 'warning' | 'danger' | 'primary' | undefined
+
+export const priorities = [
+  { value: 'urgent', label: '紧急' },
+  { value: 'high', label: '高' },
+  { value: 'medium', label: '中' },
+  { value: 'low', label: '低' }
+]
+
+export function getPriorityColor(priority: string) {
+  const map: Record<string, string> = {
+    urgent: '#f56c6c',
+    high: '#e6a23c',
+    medium: '#409eff',
+    low: '#909399'
+  }
+  return map[priority] || '#409eff'
+}
 
 export function getPriorityType(priority: string): TagType {
   const map: Record<string, TagType> = {
@@ -72,12 +90,14 @@ export function useTasks() {
     update,
     remove,
     refresh
-  } = useResourceList<Task>({ path: '/tasks', pageSize: 200 })
+  } = useResourceList<Task>({ table: 'tasks', pageSize: 200 })
 
   const { confirmDelete } = useConfirmDelete()
   const taskDialog = useDialogForm<Task>()
 
-  const viewMode = ref<'list' | 'board'>('board')
+  // 手机默认「列表」—— 看板列宽 300px 在 360px 屏上要横拖。
+  // ui.isMobile 在 App.vue 的 setup 里就初始化了，这里读到的是准的。
+  const viewMode = ref<'list' | 'board'>(useUiStore().isMobile ? 'list' : 'board')
   const filterStatus = ref('')
   const filterPriority = ref('')
   const statusDialogVisible = ref(false)
@@ -183,6 +203,18 @@ export function useTasks() {
     }
   }
 
+  async function movePriority(task: Task, priority: string) {
+    if (!task || task.priority === priority) return
+    const oldPriority = task.priority
+    task.priority = priority as TaskPriority
+    const updated = await update(task.id, { priority }, { refresh: false })
+    if (updated) {
+      ElMessage.success(`优先级已改为${getPriorityLabel(priority)}`)
+    } else {
+      task.priority = oldPriority
+    }
+  }
+
   async function saveStatuses() {
     await settingsStore.persist()
     statusDialogVisible.value = false
@@ -234,6 +266,7 @@ export function useTasks() {
     handleStatusChange,
     setDraggedTask,
     moveTask,
+    movePriority,
     saveStatuses,
     addStatus,
     removeStatus,

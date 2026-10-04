@@ -2,7 +2,7 @@
   <div class="tasks-page">
     <PageHeader class="tasks-header">
       <template #left>
-        <el-radio-group v-model="viewMode">
+        <el-radio-group v-model="viewMode" class="view-switch">
           <el-radio-button value="list">列表</el-radio-button>
           <el-radio-button value="board">看板</el-radio-button>
         </el-radio-group>
@@ -25,11 +25,11 @@
       </template>
 
       <template #right>
-        <el-button @click="statusDialogVisible = true">
+        <el-button class="header-btn" @click="statusDialogVisible = true">
           <el-icon><Setting /></el-icon>
           管理状态
         </el-button>
-        <el-button type="primary" @click="openAddDialog()">
+        <el-button class="header-btn" type="primary" @click="openAddDialog()">
           <el-icon><Plus /></el-icon>
           新建任务
         </el-button>
@@ -39,6 +39,7 @@
     <TaskListView
       v-if="viewMode === 'list'"
       :tasks="filteredTasks"
+      :loading="loading"
       :is-completed="isCompletedStatus"
       :status-label="getStatusLabel"
       :status-color="getStatusColor"
@@ -51,9 +52,11 @@
       v-else
       :tasks="filteredTasks"
       :statuses="taskStatuses"
+      :is-completed="isCompletedStatus"
       @add="openAddDialog"
       @action="handleCardAction"
       @drop="moveTask"
+      @move="handleMove"
     />
 
     <TaskFormDialog
@@ -90,6 +93,7 @@ const {
   getStatusColor,
   getStatusLabel,
   isCompletedStatus,
+  loading,
   viewMode,
   filterStatus,
   filterPriority,
@@ -103,6 +107,7 @@ const {
   duplicateTask,
   handleStatusChange,
   moveTask,
+  movePriority,
   saveStatuses,
   addStatus,
   removeStatus,
@@ -122,6 +127,12 @@ function handleCardAction(cmd: string, task: Task) {
   if (cmd === 'duplicate') duplicateTask(task)
 }
 
+/** 手机卡片的「移动状态 / 移动优先级」一次可能只带一个字段，也可能两个都带 */
+function handleMove(task: Task, patch: { status?: string; priority?: string }) {
+  if (patch.status) moveTask(task, patch.status)
+  if (patch.priority) movePriority(task, patch.priority)
+}
+
 onMounted(() => {
   fetchTasks()
 })
@@ -134,6 +145,54 @@ onMounted(() => {
 
     .filter-select {
       width: 120px;
+    }
+  }
+}
+
+// 手机（≤767px）。⚠️ 断点与 stores/ui.ts 的 MOBILE_MEDIA、
+// assets/styles/main.scss 的 $bp-mobile 保持同步（768px）。
+// 一行塞不下「radio 组 + 两个筛选 + 两个按钮」，改成三行：
+// ① 视图切换铺满  ② 两个筛选平分  ③ 两个按钮平分
+@media (max-width: 767px) {
+  .tasks-page .tasks-header {
+    // PageHeader 的 .header-left/.header-right 是子组件内部 DOM，
+    // scoped 的 data-v 到不了，必须 deep
+    :deep(.header-left),
+    :deep(.header-right) {
+      width: 100%;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    // EP 2.14 的 el-radio-group 没有 stretch 属性，只能 CSS 铺满
+    .view-switch {
+      display: flex;
+      flex: 0 0 100%;
+
+      :deep(.el-radio-button) {
+        flex: 1;
+      }
+
+      // el-radio-button__inner 是 EP 内部 DOM，scoped 的 data-v 到不了，必须 deep
+      :deep(.el-radio-button__inner) {
+        width: 100%;
+        text-align: center;
+      }
+    }
+
+    .filter-select {
+      flex: 1;
+      width: auto;
+      min-width: 0;
+    }
+
+    .header-btn {
+      flex: 1;
+    }
+
+    // EP 全局的 .el-button + .el-button { margin-left: 12px } 会把 flex:1 顶成一宽一窄
+    .header-btn + .header-btn {
+      margin-left: 0;
     }
   }
 }

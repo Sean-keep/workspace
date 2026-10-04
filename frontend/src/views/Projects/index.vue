@@ -34,16 +34,16 @@
           <h3>{{ selectedProject.name }} - 子任务</h3>
         </div>
         <div class="section-actions">
-          <el-radio-group v-model="subtaskViewMode" size="small">
+          <el-radio-group v-model="subtaskViewMode" size="small" class="view-switch">
             <el-radio-button value="kanban">看板</el-radio-button>
             <el-radio-button value="swimlane">泳道图</el-radio-button>
             <el-radio-button value="list">列表</el-radio-button>
           </el-radio-group>
-          <el-button size="small" @click="statusDialogVisible = true">
+          <el-button class="section-btn" size="small" @click="statusDialogVisible = true">
             <el-icon><Setting /></el-icon>
             管理状态
           </el-button>
-          <el-button type="primary" size="small" @click="openAddSubtask()">
+          <el-button class="section-btn" type="primary" size="small" @click="openAddSubtask()">
             <el-icon><Plus /></el-icon>
             添加子任务
           </el-button>
@@ -64,6 +64,8 @@
         v-else-if="subtaskViewMode === 'swimlane'"
         :subtasks="selectedProject.subtasks || []"
         :statuses="subtaskStatuses"
+        @edit="subtaskDialog.openEdit"
+        @delete="deleteSubtask"
         @move="moveSubtask"
       />
 
@@ -160,6 +162,46 @@ onMounted(() => {
 
     .search-input {
       width: 300px;
+    }
+  }
+}
+
+// 手机（≤767px）。⚠️ 断点与 stores/ui.ts 的 MOBILE_MEDIA、
+// assets/styles/main.scss 的 $bp-mobile 保持同步（768px）。
+@media (max-width: 767px) {
+  .projects-page .projects-header .search-input {
+    width: 100%;
+  }
+
+  // 视图切换栏：手机上一行塞不下「radio 组 + 两个按钮」。
+  // radio 组独占一行三段铺满，两个按钮平分第二行。
+  .subtasks-section .section-header .section-actions {
+    width: 100%;
+    flex-wrap: wrap;
+
+    // EP 2.14 的 el-radio-group 没有 stretch 属性，只能 CSS 铺满
+    .view-switch {
+      display: flex;
+      flex: 0 0 100%;
+
+      :deep(.el-radio-button) {
+        flex: 1;
+      }
+
+      // el-radio-button__inner 是 EP 内部 DOM，scoped 的 data-v 到不了，必须 deep
+      :deep(.el-radio-button__inner) {
+        width: 100%;
+        text-align: center;
+      }
+    }
+
+    .section-btn {
+      flex: 1;
+    }
+
+    // EP 全局的 .el-button + .el-button { margin-left: 12px } 会把 flex:1 顶成一宽一窄
+    .section-btn + .section-btn {
+      margin-left: 0;
     }
   }
 }

@@ -24,6 +24,24 @@
         <el-switch v-model="form.is_all_day" />
       </el-form-item>
 
+      <el-form-item label="提醒" prop="reminder_minutes">
+        <div class="reminder-field">
+          <el-select v-model="form.reminder_minutes" style="width: 100%">
+            <el-option
+              v-for="opt in reminderOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
+          </el-select>
+          <!-- 提醒只在 App 前台到点弹（裸 HTTP 拿不到系统通知） -->
+          <div class="form-tip">
+            <template v-if="form.is_all_day">全天日程在当天 09:00 提醒</template>
+            <template v-else>App 开着时到点提醒</template>
+          </div>
+        </div>
+      </el-form-item>
+
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="开始" prop="start_time">
@@ -66,7 +84,7 @@ import { reactive, ref, watch } from 'vue'
 import dayjs from 'dayjs'
 import type { FormInstance } from 'element-plus'
 import type { Event } from '@/types/models'
-import { predefineColors, type EventFormState } from '../composables/useCalendar'
+import { predefineColors, reminderOptions, type EventFormState } from '../composables/useCalendar'
 
 const props = defineProps<{
   visible: boolean
@@ -87,6 +105,7 @@ const form = reactive<EventFormState>({
   start_time: null,
   end_time: null,
   is_all_day: false,
+  reminder_minutes: 10,
   color: '#409eff'
 })
 
@@ -106,6 +125,8 @@ watch(
     form.start_time = e?.start_time ?? props.defaultDate ?? dayjs().format('YYYY-MM-DD')
     form.end_time = e?.end_time ?? props.defaultDate ?? dayjs().format('YYYY-MM-DD')
     form.is_all_day = e?.is_all_day ?? false
+    // ?? 而不是 || —— 0（不提醒）是合法值，不能被吞掉
+    form.reminder_minutes = e?.reminder_minutes ?? 10
     form.color = e?.color ?? '#409eff'
   }
 )
@@ -116,3 +137,16 @@ async function handleSubmit() {
   emit('submit', { ...form })
 }
 </script>
+
+<style scoped lang="scss">
+.reminder-field {
+  width: 100%;
+}
+
+.form-tip {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.4;
+}
+</style>

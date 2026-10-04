@@ -1,17 +1,15 @@
 import { computed, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Capacitor } from '@capacitor/core'
+import { Browser } from '@capacitor/browser'
 import { useResourceList, useConfirmDelete, useDialogForm } from '@/composables'
 import type { Bookmark, BookmarkPayload } from '@/types/models'
 
-export function getFaviconUrl(url: string): string {
-  try {
-    const domain = new URL(url).hostname
-    return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
-  } catch {
-    return ''
-  }
-}
-
+/**
+ * 书签图标：不发任何网络请求。
+ * 以前打 Google 的 favicon 服务 —— 全离线下那是必然失败的请求，现在改成
+ * 域名首字母（见 BookmarkCard.vue）。
+ */
 export function getDomain(url: string): string {
   try {
     return new URL(url).hostname
@@ -37,7 +35,7 @@ export function useBookmarks() {
     update,
     remove,
     refresh
-  } = useResourceList<Bookmark>({ path: '/bookmarks', pageSize: 200 })
+  } = useResourceList<Bookmark>({ table: 'bookmarks', pageSize: 200 })
 
   const { confirmDelete } = useConfirmDelete()
   const bookmarkDialog = useDialogForm<Bookmark>()
@@ -115,7 +113,12 @@ export function useBookmarks() {
   }
 
   function openBookmark(bookmark: Bookmark) {
-    window.open(bookmark.url, '_blank')
+    // 原生端走 Custom Tab：跳出 WebView，返回时 App 状态还在。
+    if (Capacitor.isNativePlatform()) {
+      void Browser.open({ url: bookmark.url })
+    } else {
+      window.open(bookmark.url, '_blank', 'noopener')
+    }
   }
 
   return {

@@ -2,6 +2,7 @@ import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useResourceList, useConfirmDelete, useDialogForm } from '@/composables'
+import { refreshReminders } from '@/stores/reminderScheduler'
 import type { Event, EventPayload } from '@/types/models'
 
 export const weekDays = ['日', '一', '二', '三', '四', '五', '六']
@@ -27,8 +28,20 @@ export interface EventFormState {
   start_time: string | Date | null
   end_time: string | Date | null
   is_all_day: boolean
+  /** 0 = 不提醒；>0 = 提前多少分钟。全天事件固定在当天 09:00 提醒。 */
+  reminder_minutes: number
   color: string
 }
+
+/** 「提醒」下拉的固定档位。 */
+export const reminderOptions = [
+  { label: '不提醒', value: 0 },
+  { label: '提前 5 分钟', value: 5 },
+  { label: '提前 10 分钟', value: 10 },
+  { label: '提前 30 分钟', value: 30 },
+  { label: '提前 1 小时', value: 60 },
+  { label: '提前 1 天', value: 1440 }
+]
 
 export function formatEventTime(event: Event) {
   if (event.is_all_day) return '全天'
@@ -49,7 +62,7 @@ export function useCalendar() {
     remove,
     refresh
   } = useResourceList<Event>({
-    path: '/events',
+    table: 'events',
     pageSize: 500,
     getParams: () => {
       // Pad the visible window so adjacent-month cells stay populated.
@@ -170,6 +183,7 @@ export function useCalendar() {
       start_time: dayjs(form.start_time!).toISOString(),
       end_time: dayjs(form.end_time!).toISOString(),
       is_all_day: form.is_all_day,
+      reminder_minutes: form.reminder_minutes,
       color: form.color
     }
     const editing = eventDialog.editing
@@ -181,12 +195,14 @@ export function useCalendar() {
       ElMessage.success('日程已添加')
     }
     eventDialog.close()
+    refreshReminders()
   }
 
   async function deleteEvent(event: Event) {
     if (!(await confirmDelete('确定要删除这个日程吗？'))) return
     await remove(event.id)
     ElMessage.success('日程已删除')
+    refreshReminders()
   }
 
   function handleEventAction(cmd: string, event: Event) {

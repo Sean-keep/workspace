@@ -12,13 +12,13 @@
               </el-avatar>
             </el-form-item>
             <el-form-item label="用户名">
-              <el-input v-model="profileForm.username" disabled />
+              <el-input v-model="profileForm.username" placeholder="怎么称呼你" />
             </el-form-item>
             <el-form-item label="邮箱">
-              <el-input v-model="profileForm.email" placeholder="请输入邮箱" />
+              <el-input v-model="profileForm.email" placeholder="可留空" />
             </el-form-item>
             <el-form-item label="头像地址">
-              <el-input v-model="profileForm.avatar" placeholder="https://..." clearable />
+              <el-input v-model="profileForm.avatar" placeholder="https://... 或 data:..." clearable />
             </el-form-item>
             <el-form-item>
               <el-button type="primary" :loading="profileSaving" @click="saveProfile">保存</el-button>
@@ -69,24 +69,25 @@
         </div>
       </el-tab-pane>
 
-      <!-- Security Settings -->
-      <el-tab-pane label="安全设置" name="security">
+      <!-- Data: export / import. 数据只在本机，这是唯一的备份手段。 -->
+      <el-tab-pane label="数据" name="data">
         <div class="setting-section">
-          <h3>修改密码</h3>
-          <el-form :model="passwordForm" :rules="passwordRules" ref="passwordFormRef" label-width="100px" class="setting-form">
-            <el-form-item label="当前密码" prop="oldPassword">
-              <el-input v-model="passwordForm.oldPassword" type="password" show-password />
-            </el-form-item>
-            <el-form-item label="新密码" prop="newPassword">
-              <el-input v-model="passwordForm.newPassword" type="password" show-password />
-            </el-form-item>
-            <el-form-item label="确认密码" prop="confirmPassword">
-              <el-input v-model="passwordForm.confirmPassword" type="password" show-password />
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" :loading="passwordSaving" @click="changePassword">修改密码</el-button>
-            </el-form-item>
-          </el-form>
+          <h3>备份与还原</h3>
+          <p class="data-hint">
+            数据保存在本机，不上传任何服务器。换设备、清缓存之前请先导出一份。
+          </p>
+          <div class="data-actions">
+            <el-button type="primary" :loading="exporting" @click="doExport">导出数据</el-button>
+            <el-button :loading="importing" @click="pickImportFile">导入数据</el-button>
+            <!-- 原生 <input type="file">：WebView 和浏览器都认，不用插件 -->
+            <input
+              ref="importInput"
+              type="file"
+              accept="application/json,.json"
+              class="import-input"
+              @change="onImportFile"
+            />
+          </div>
         </div>
       </el-tab-pane>
 
@@ -97,8 +98,8 @@
           <div class="about-info">
             <p><strong>系统名称：</strong>个人工作台</p>
             <p><strong>版本：</strong>1.1.0</p>
-            <p><strong>技术栈：</strong>Vue 3 + Element Plus + FastAPI</p>
-            <p><strong>描述：</strong>一个高效的个人工作管理平台</p>
+            <p><strong>技术栈：</strong>Vue 3 + Element Plus + Dexie（本地离线）</p>
+            <p><strong>描述：</strong>一个全离线的个人工作管理平台</p>
           </div>
         </div>
       </el-tab-pane>
@@ -108,9 +109,16 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useSettingsStore } from '@/stores/settings'
+import {
+  exportAll,
+  importAll,
+  readBackupFile,
+  saveBackup,
+  assertBackupFile
+} from '@/db/exportImport'
 
 const PRESET_COLORS = ['#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#9a60b4', '#909399']
 const FONT_SIZES = ['12px', '14px', '16px', '18px']
@@ -119,43 +127,17 @@ const userStore = useUserStore()
 const settingsStore = useSettingsStore()
 
 const activeTab = ref('profile')
-const passwordFormRef = ref<FormInstance>()
 const profileSaving = ref(false)
-const passwordSaving = ref(false)
 const appearanceSaving = ref(false)
+const exporting = ref(false)
+const importing = ref(false)
+const importInput = ref<HTMLInputElement>()
 
 const profileForm = reactive({
   username: '',
   email: '',
   avatar: ''
 })
-
-const passwordForm = reactive({
-  oldPassword: '',
-  newPassword: '',
-  confirmPassword: ''
-})
-
-const passwordRules: FormRules = {
-  oldPassword: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
-  newPassword: [
-    { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
-  ],
-  confirmPassword: [
-    { required: true, message: '请确认新密码', trigger: 'blur' },
-    {
-      validator: (_rule: unknown, value: string, callback: (e?: Error) => void) => {
-        if (value !== passwordForm.newPassword) {
-          callback(new Error('两次输入的密码不一致'))
-        } else {
-          callback()
-        }
-      },
-      trigger: 'blur'
-    }
-  ]
-}
 
 /** Live preview via settings store (patch -> applyAppearance). */
 const isDark = computed({
@@ -188,8 +170,6 @@ async function saveAppearance() {
     settingsStore.applyAppearance()
     await settingsStore.persist()
     ElMessage.success('外观设置已保存')
-  } catch {
-    // api interceptor already toasts
   } finally {
     appearanceSaving.value = false
   }
@@ -208,44 +188,75 @@ async function saveProfile() {
   profileSaving.value = true
   try {
     await userStore.updateProfile({
+      username: profileForm.username || '我',
       email: profileForm.email,
-      avatar: profileForm.avatar || undefined
+      avatar: profileForm.avatar || ''
     })
-    await settingsStore.persist()
     loadProfile()
     ElMessage.success('个人资料已保存')
-  } catch {
-    // api interceptor already toasts
   } finally {
     profileSaving.value = false
   }
 }
 
-async function changePassword() {
-  const valid = await passwordFormRef.value?.validate().catch(() => false)
-  if (!valid) return
-  passwordSaving.value = true
+async function doExport() {
+  exporting.value = true
   try {
-    await userStore.changePassword(passwordForm.oldPassword, passwordForm.newPassword)
-    passwordForm.oldPassword = ''
-    passwordForm.newPassword = ''
-    passwordForm.confirmPassword = ''
-    passwordFormRef.value?.resetFields()
-    ElMessage.success('密码已修改')
-  } catch {
-    // api interceptor already toasts — don't double-toast
+    const file = await exportAll()
+    const where = await saveBackup(file)
+    ElMessage.success(`已导出到 ${where}`)
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '导出失败')
   } finally {
-    passwordSaving.value = false
+    exporting.value = false
+  }
+}
+
+function pickImportFile() {
+  importInput.value?.click()
+}
+
+async function onImportFile(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = '' // 允许连续选同一个文件
+  if (!file) return
+
+  let parsed
+  try {
+    parsed = await readBackupFile(file)
+    assertBackupFile(parsed)
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : '备份文件解析失败')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `将覆盖本机全部数据（${parsed.data.tasks?.length ?? 0} 个任务、${parsed.data.notes?.length ?? 0} 篇笔记等）。此操作不可撤销。`,
+      '确认导入',
+      { type: 'warning', confirmButtonText: '覆盖并导入', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+
+  importing.value = true
+  try {
+    await importAll(parsed)
+    ElMessage.success('导入成功，正在刷新…')
+    // 让所有 store 重新从库读一遍，比逐个 refresh 可靠。
+    setTimeout(() => window.location.reload(), 600)
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : '导入失败')
+  } finally {
+    importing.value = false
   }
 }
 
 onMounted(async () => {
   if (!userStore.user) {
-    try {
-      await userStore.fetchUser()
-    } catch {
-      // handled by interceptor
-    }
+    await userStore.load()
   }
   loadProfile()
   if (!settingsStore.loaded) {
@@ -296,6 +307,29 @@ onMounted(async () => {
   &:hover {
     transform: scale(1.1);
   }
+}
+
+.data-hint {
+  font-size: 13px;
+  color: #909399;
+  margin: 0 0 16px 0;
+  line-height: 1.6;
+}
+
+.data-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+// 原生 file input 隐藏掉，由按钮触发 —— 但不能用 display:none，
+// 某些 WebView 里那样 click() 不生效，用绝对定位移出视口。
+.import-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
 }
 
 .about-info {

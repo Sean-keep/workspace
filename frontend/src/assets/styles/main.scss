@@ -40,6 +40,39 @@ $dark-border: #4c4d4f;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
+// ── 断点 ──────────────────────────────────────────────────────────
+//
+// 手机 ≤767px，桌面 ≥768px —— 正好是 Element Plus 自己的 `xs` 边界，两边不打架。
+// 768px 是 iPad 竖屏，再往上桌面壳就够用（刻意不做第三套「平板」布局）。
+//
+// ⚠️ 必须和 stores/ui.ts 的 MOBILE_MEDIA 保持同步。scoped SFC 样式里拿不到这个
+// mixin，那边直接写 `@media (max-width: 767px)` 并标 `// 手机` —— 三处同一个数字。
+//
+// 硬规则：所有新增 CSS 必须在 `@include mobile { }` 内，或手机专属的 scoped 块里，
+// 不能有任何规则在 ≥768px 命中。桌面布局一个像素都不能动。
+$bp-mobile: 768px;
+
+@mixin mobile {
+  @media (max-width: $bp-mobile - 1px) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: $bp-mobile) {
+    @content;
+  }
+}
+
+// 安全区 / 手机壳高度。只在手机壳里消费，桌面上这些值等于没设。
+:root {
+  --mobile-header-height: 48px;
+  --mobile-tabbar-height: 52px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --mobile-bottom-chrome: calc(var(--mobile-tabbar-height) + var(--safe-bottom));
+}
+
 // Global styles
 * {
   box-sizing: border-box;
@@ -93,4 +126,39 @@ body {
 .slide-leave-to {
   transform: translateX(20px);
   opacity: 0;
+}
+
+// ── 手机弹窗 ──────────────────────────────────────────────────────
+//
+// 8 个 el-dialog 里写死 450–800px，手机上全是横滚。这里一次性盖掉，
+// **模板一行不动**（含 ElMessageBox）。
+//
+// 为什么盖 `width` 而不是 `--el-dialog-width`：Element Plus 2.14 的 use-dialog
+// 把 `width` 写成元素上的**内联**自定义属性（`--el-dialog-width: 500px`），
+// 样式表里的同名变量打不过内联；但真正的 `width` 来自普通样式规则，直接盖就行。
+//
+// `!important` 是必须的：EP 样式由 ElementPlusResolver 按需注入，和 main.scss 的
+// 先后顺序不保证。关在 @include mobile 里不会外泄到桌面。
+//
+// 用 `100%` 不用 `100vw` —— .el-dialog 在 position:fixed 遮罩里，
+// 100vw 在 Android 上有滚动条宽度 bug。
+@include mobile {
+  // width + max-width 而不是 min(…)，省得 sass 把 min() 简化成别的写法
+  .el-dialog {
+    width: calc(100% - 24px) !important;
+    max-width: 520px;
+    --el-dialog-margin-top: 6vh;
+  }
+
+  .el-dialog__body {
+    // 800px 的 ScriptDialog（16 行代码框）在里面滚
+    max-height: calc(100dvh - 170px);
+    overflow-y: auto;
+    padding: 12px 4px;
+  }
+
+  .el-message-box {
+    width: calc(100% - 32px) !important;
+    max-width: 420px;
+  }
 }

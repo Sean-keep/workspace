@@ -37,7 +37,7 @@ export function useScripts() {
     update,
     remove,
     refresh
-  } = useResourceList<Snippet>({ path: '/snippets', pageSize: 200 })
+  } = useResourceList<Snippet>({ table: 'snippets', pageSize: 200 })
 
   const { confirmDelete } = useConfirmDelete()
   const scriptDialog = useDialogForm<Snippet>()

@@ -1,24 +1,31 @@
 <template>
-  <div class="bookmark-card" @dblclick="$emit('open', bookmark)">
+  <!--
+    书签的主操作就是「跳走」，所以整卡单击 = 打开。原来只绑 @dblclick，手机上双击不灵；
+    ⋮ 又是 hover 触发（EP 默认），触屏点不开 —— 两条路都死，等于不能跳转。
+    现在单击打开，⋮ 改 trigger="click" 并用 @click.stop 拦掉冒泡（同 TaskRow / SubtaskMCard）。
+  -->
+  <div class="bookmark-card" @click="$emit('open', bookmark)">
     <div class="card-header">
+      <!--
+        以前这里 <img> 打 Google 的 favicon 服务 —— 全离线是必然失败的请求。
+        现在用域名首字母，零网络、也不会有碎图。
+      -->
       <div class="favicon-wrapper">
-        <img
-          :src="getFaviconUrl(bookmark.url)"
-          class="favicon"
-          @error="handleFaviconError"
-          loading="lazy"
-        />
+        <span class="favicon-letter">{{ getDomain(bookmark.url).charAt(0).toUpperCase() }}</span>
       </div>
-      <el-dropdown @command="(cmd: string) => $emit('action', cmd, bookmark)">
-        <el-icon class="card-more"><MoreFilled /></el-icon>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item command="edit">编辑</el-dropdown-item>
-            <el-dropdown-item command="open">打开链接</el-dropdown-item>
-            <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
+      <!-- @click.stop 在包裹层上：拦掉卡片的「点开链接」，但不挡 el-dropdown 自己的触发 -->
+      <div class="card-more" @click.stop>
+        <el-dropdown trigger="click" @command="(cmd: string) => $emit('action', cmd, bookmark)">
+          <el-icon class="card-more-icon"><MoreFilled /></el-icon>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="open">打开链接</el-dropdown-item>
+              <el-dropdown-item command="edit">编辑</el-dropdown-item>
+              <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
     </div>
     <div class="card-title">{{ bookmark.title }}</div>
     <div class="card-url">{{ getDomain(bookmark.url) }}</div>
@@ -31,13 +38,12 @@
       </div>
       <span class="visit-count">访问 {{ bookmark.visit_count }} 次</span>
     </div>
-    <div class="dblclick-hint">双击打开</div>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { Bookmark } from '@/types/models'
-import { getDomain, getFaviconUrl } from '../composables/useBookmarks'
+import { getDomain } from '../composables/useBookmarks'
 
 defineProps<{
   bookmark: Bookmark
@@ -47,11 +53,6 @@ defineEmits<{
   open: [bookmark: Bookmark]
   action: [cmd: string, bookmark: Bookmark]
 }>()
-
-function handleFaviconError(e: Event) {
-  const img = e.target as HTMLImageElement
-  img.style.display = 'none'
-}
 </script>
 
 <style scoped lang="scss">
@@ -85,20 +86,34 @@ function handleFaviconError(e: Event) {
       align-items: center;
       justify-content: center;
 
-      .favicon {
-        width: 20px;
-        height: 20px;
-        object-fit: contain;
+      .favicon-letter {
+        font-size: 14px;
+        font-weight: 600;
+        color: #409eff;
+        line-height: 1;
       }
     }
 
     .card-more {
-      color: #909399;
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 4px;
+      // 44px 触摸区
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
 
-      &:hover {
+      .card-more-icon {
+        color: #909399;
+        cursor: pointer;
+        font-size: 16px;
+      }
+
+      &:hover .card-more-icon {
+        color: #409eff;
+      }
+
+      &:active .card-more-icon {
         color: #409eff;
         background-color: #f5f7fa;
       }
@@ -146,20 +161,6 @@ function handleFaviconError(e: Event) {
       font-size: 12px;
       color: #c0c4cc;
     }
-  }
-
-  .dblclick-hint {
-    position: absolute;
-    bottom: 8px;
-    right: 8px;
-    font-size: 11px;
-    color: #c0c4cc;
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-
-  &:hover .dblclick-hint {
-    opacity: 1;
   }
 }
 </style>

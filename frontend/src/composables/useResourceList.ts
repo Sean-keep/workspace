@@ -1,6 +1,21 @@
 import { reactive, ref, type Ref } from 'vue'
-import api from '@/utils/api'
-import { pageItems, type Envelope, type Page } from '@/utils/api-types'
+import {
+  repoList,
+  repoGet,
+  repoCreate,
+  repoUpdate,
+  repoRemove,
+  type TableName
+} from '@/db/repo'
+
+/**
+ * 共享的分页 CRUD 列表状态 —— 六个业务域都走这里。
+ *
+ * 底层从 HTTP（axios + FastAPI）换成了本地 Dexie（`src/db/repo.ts`），
+ * 但**公开 API 一字未变**：`fetchList` / `fetchOne` / `create` / `update` /
+ * `remove` / `refresh` / `setPage` / `setPageSize`，`pagination` 照旧绑
+ * `el-pagination`。业务 composable 只把 `path: '/tasks'` 换成 `table: 'tasks'`。
+ */
 
 export interface PaginationState {
   page: number
@@ -9,21 +24,15 @@ export interface PaginationState {
 }
 
 export interface UseResourceListOptions {
-  /** REST base path, e.g. '/tasks' */
-  path: string
-  /** Extra query params merged into every list request. */
+  /** 本地表名，如 'tasks' */
+  table: TableName
+  /** 额外过滤参数，合并进每次列表请求（日历的 start_date/end_date 走这个）。 */
   getParams?: () => Record<string, string | number | boolean | null | undefined>
   pageSize?: number
 }
 
 type Id = number
 
-/**
- * Shared paginated CRUD list state.
- *
- * List reads go through `pageItems` (envelope `{code,msg,data:{items,total,skip,limit}}`);
- * `pagination` binds straight to `el-pagination`.
- */
 export function useResourceList<T extends { id: Id }>(options: UseResourceListOptions) {
   const items = ref<T[]>([]) as Ref<T[]>
   const loading = ref(false)
@@ -38,23 +47,14 @@ export function useResourceList<T extends { id: Id }>(options: UseResourceListOp
     loading.value = true
     error.value = null
     try {
-      const params = {
+      const res = await repoList<T>(options.table, {
         skip: (pagination.page - 1) * pagination.pageSize,
         limit: pagination.pageSize,
         ...(options.getParams?.() ?? {})
-      }
-      const res = (await api.get(options.path, { params })) as unknown as Envelope<
-        Page<T> | T[]
-      >
-      items.value = pageItems<T>(res)
-      const data = res.data
-      if (data && !Array.isArray(data)) {
-        pagination.total = data.total
-        if (data.limit) pagination.pageSize = data.limit
-      } else {
-        pagination.total = items.value.length
-      }
-      return items.value
+      })
+      items.value = res.items
+      pagination.total = res.total
+      return res.items
     } catch (e) {
       error.value = '加载失败'
       return []
@@ -65,8 +65,7 @@ export function useResourceList<T extends { id: Id }>(options: UseResourceListOp
 
   async function fetchOne(id: Id): Promise<T | null> {
     try {
-      const res = (await api.get(`${options.path}/${id}`)) as unknown as Envelope<T>
-      return res.data
+      return await repoGet<T>(options.table, id)
     } catch {
       return null
     }
@@ -77,9 +76,9 @@ export function useResourceList<T extends { id: Id }>(options: UseResourceListOp
     opts: { refresh?: boolean } = {}
   ): Promise<T | null> {
     try {
-      const res = (await api.post(options.path, payload)) as unknown as Envelope<T>
+      const row = await repoCreate<T>(options.table, payload as Partial<T>)
       if (opts.refresh !== false) await fetchList()
-      return res.data
+      return row
     } catch {
       return null
     }
@@ -91,9 +90,9 @@ export function useResourceList<T extends { id: Id }>(options: UseResourceListOp
     opts: { refresh?: boolean } = {}
   ): Promise<T | null> {
     try {
-      const res = (await api.put(`${options.path}/${id}`, payload)) as unknown as Envelope<T>
+      const row = await repoUpdate<T>(options.table, id, payload as Partial<T>)
       if (opts.refresh !== false) await fetchList()
-      return res.data
+      return row
     } catch {
       return null
     }
@@ -101,9 +100,9 @@ export function useResourceList<T extends { id: Id }>(options: UseResourceListOp
 
   async function remove(id: Id, opts: { refresh?: boolean } = {}): Promise<boolean> {
     try {
-      await api.delete(`${options.path}/${id}`)
+      const ok = await repoRemove(options.table, id)
       if (opts.refresh !== false) await fetchList()
-      return true
+      return ok
     } catch {
       return false
     }

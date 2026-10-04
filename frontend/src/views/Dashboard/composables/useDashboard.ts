@@ -1,33 +1,16 @@
 import { ref, onMounted } from 'vue'
-import api from '@/utils/api'
-import { pageItems } from '@/utils/api-types'
 import dayjs from 'dayjs'
+import { repoList } from '@/db/repo'
+import {
+  getStats,
+  getRecentTasks,
+  getUpcomingEvents,
+  type DashboardStats,
+  type RecentTask,
+  type UpcomingEvent
+} from '@/db/logic/dashboard'
 
-export interface DashboardStats {
-  tasks?: { total: number; completed: number; pending: number; completion_rate: number }
-  events?: { today: number; upcoming: number }
-  notes?: number
-  bookmarks?: number
-  snippets?: number
-  task_trend?: { date: string; count: number }[]
-}
-
-export interface RecentTask {
-  id: number
-  title: string
-  status: string
-  priority: string | null
-  due_date: string | null
-}
-
-export interface UpcomingEvent {
-  id: number
-  title: string
-  start_time: string
-  end_time: string
-  color: string | null
-  is_all_day?: boolean
-}
+export type { DashboardStats, RecentTask, UpcomingEvent }
 
 export interface DashboardProject {
   id: number
@@ -54,19 +37,24 @@ export function useDashboard() {
   async function fetchDashboardData() {
     try {
       const [statsRes, tasksRes, eventsRes, projectsRes, notesRes] = await Promise.all([
-        api.get('/dashboard/stats'),
-        api.get('/dashboard/recent-tasks'),
-        api.get('/dashboard/upcoming-events'),
-        api.get('/projects').catch(() => ({ data: [] })),
-        api.get('/notes').catch(() => ({ data: [] }))
+        getStats(),
+        getRecentTasks(),
+        getUpcomingEvents(),
+        repoList<DashboardProject>('projects', { skip: 0, limit: 200 }).catch(() => ({
+          items: [] as DashboardProject[],
+          total: 0
+        })),
+        repoList<RecentNote>('notes', { skip: 0, limit: 200 }).catch(() => ({
+          items: [] as RecentNote[],
+          total: 0
+        }))
       ])
 
-      stats.value = (statsRes as { data?: DashboardStats }).data || {}
-      recentTasks.value = (tasksRes as { data?: RecentTask[] }).data || []
-      upcomingEvents.value = (eventsRes as { data?: UpcomingEvent[] }).data || []
-      // List endpoints are paginated envelopes ({ items, total, skip, limit }).
-      projects.value = pageItems<DashboardProject>(projectsRes)
-      recentNotes.value = pageItems<RecentNote>(notesRes).slice(0, 5)
+      stats.value = statsRes
+      recentTasks.value = tasksRes
+      upcomingEvents.value = eventsRes
+      projects.value = projectsRes.items
+      recentNotes.value = notesRes.items.slice(0, 5)
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error)
     }

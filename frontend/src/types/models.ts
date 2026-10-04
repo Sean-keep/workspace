@@ -1,5 +1,10 @@
 /**
- * Entity types mirroring backend/app/schemas/*.py.
+ * Entity types for the local Dexie store (see `src/db/index.ts`).
+ *
+ * 曾经镜像 `backend/app/schemas/*.py`；后端已经从运行时拿掉，这些现在是
+ * IndexedDB 行的形状。字段名保持 snake_case —— 和旧后端一致，导出的 JSON
+ * 备份也认它。
+ *
  * List rows omit heavy fields (e.g. Note.content) — see NoteListItem.
  */
 
@@ -21,7 +26,6 @@ export interface ChecklistItem {
 
 export interface Task {
   id: number
-  user_id: number
   title: string
   description: string | null
   status: string
@@ -69,9 +73,8 @@ export interface NoteListItem {
   updated_at: string
 }
 
-/** Full note — `content` is only present after GET /notes/{id} (or create). */
+/** Full note — `content` is only present after `repoGet` (or create). */
 export interface Note extends NoteListItem {
-  user_id?: number
   content?: string | null
 }
 
@@ -91,7 +94,6 @@ export type NotePayload = Partial<
 
 export interface Event {
   id: number
-  user_id: number
   title: string
   description: string | null
   start_time: string
@@ -122,7 +124,6 @@ export type EventPayload = Partial<
 
 export interface Bookmark {
   id: number
-  user_id: number
   url: string
   title: string
   description: string | null
@@ -140,7 +141,6 @@ export type BookmarkPayload = Partial<
 
 export interface Snippet {
   id: number
-  user_id: number
   title: string
   description: string | null
   language: string
@@ -155,7 +155,7 @@ export type SnippetPayload = Partial<
   Pick<Snippet, 'title' | 'description' | 'language' | 'code' | 'tags' | 'is_public'>
 >
 
-/** Free-form subtask shape stored on Project.subtasks (backend: List[Any]). */
+/** Free-form subtask shape stored on Project.subtasks. */
 export interface ProjectSubtask {
   id: number | string
   title: string
@@ -167,12 +167,11 @@ export interface ProjectSubtask {
 
 export interface Project {
   id: number
-  user_id: number
   name: string
   description: string | null
   status: string
   priority: string
-  /** Recomputed server-side from subtasks (status done/completed counts). */
+  /** Recomputed from subtasks whenever `subtasks` is written (status done/completed counts). */
   progress: number
   deadline: string | null
   color: string

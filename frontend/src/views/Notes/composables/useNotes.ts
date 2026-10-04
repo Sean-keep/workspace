@@ -36,7 +36,7 @@ export function useNotes() {
     update,
     remove,
     refresh
-  } = useResourceList<Note>({ path: '/notes', pageSize: 200 })
+  } = useResourceList<Note>({ table: 'notes', pageSize: 200 })
 
   const { confirmDelete } = useConfirmDelete()
 

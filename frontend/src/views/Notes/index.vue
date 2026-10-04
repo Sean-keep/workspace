@@ -4,6 +4,7 @@
     <NotesTable
       v-if="mode === 'browse'"
       :notes="filteredNotes"
+      :loading="loading"
       :search-query="searchQuery"
       :filter-type="filterType"
       @update:search-query="searchQuery = $event"
@@ -80,6 +81,7 @@ import { useNotes } from './composables/useNotes'
 
 const {
   filteredNotes,
+  loading,
   currentNote,
   searchQuery,
   filterType,
@@ -116,6 +118,15 @@ onMounted(() => {
   background-color: #fff;
   border-radius: 8px;
   min-height: calc(100vh - 120px);
+}
+
+// 手机（≤767px）。⚠️ 断点与 stores/ui.ts 的 MOBILE_MEDIA、
+// assets/styles/main.scss 的 $bp-mobile 保持同步（768px）。
+// 100vh 在 Android Chrome 上会被地址栏裁掉，100dvh 才是真实可视高度。
+@media (max-width: 767px) {
+  .notes-page {
+    min-height: calc(100dvh - 120px);
+  }
 }
 
 .edit-mode {
